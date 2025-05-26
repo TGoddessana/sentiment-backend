@@ -5,14 +5,15 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from config.db import Base, DATABASE_URL
+from config.settings import settings
+from config.db import Base
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+config.set_main_option("sqlalchemy.url", settings.SQLALCHEMY_DATABASE_URI)
 
 target_metadata = Base.metadata
 from users.models import User
