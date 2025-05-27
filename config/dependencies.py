@@ -2,15 +2,15 @@ from typing import Annotated
 
 import jwt
 from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 from jwt import InvalidTokenError
-from pydantic import ValidationError, BaseModel
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from starlette import status
 
 from config.db import SessionLocal
 from config.settings import settings
-from users.models import User
+from application.models import User
 
 
 def get_db():
