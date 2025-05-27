@@ -10,7 +10,7 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(30))
+    user_id: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(100))
     nickname: Mapped[str] = mapped_column(String(30))
     gender: Mapped[Literal["male", "female"]] = mapped_column(String(6))

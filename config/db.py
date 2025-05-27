@@ -5,7 +5,7 @@ from config.settings import settings
 
 engine = create_engine(
     settings.SQLALCHEMY_DATABASE_URI,
-    echo=True,
+    echo=False,
     future=True,
 )
 
@@ -16,11 +16,3 @@ SessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()

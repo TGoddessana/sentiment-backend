@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
 
+    # JWT settings
+    JWT_SECRET_KEY: str = "your-secret-key-for-jwt"  # Should be set in .env in production
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
     @computed_field(return_type=str)
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:

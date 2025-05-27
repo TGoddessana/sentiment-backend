@@ -14,11 +14,6 @@ def get_api_prefix(version: int, path: str) -> str:
 
 app.include_router(
     router=router,
-    prefix=get_api_prefix(version=1, path="auth"),
-    tags=["인증/인가 API"],
-)
-app.include_router(
-    router=router,
     prefix=get_api_prefix(version=1, path="users"),
     tags=["사용자 API"],
 )
