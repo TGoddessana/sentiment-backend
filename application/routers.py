@@ -51,8 +51,10 @@ def create_user(
 
 
 @router.get("/")
-def read_user_list(db: Session = Depends(get_db)):
-    stmt = db.query(User)
+def read_user_list(
+    db_session: SessionDependency,
+):
+    stmt = db_session.query(User)
     result = stmt.all()
     return result
 
@@ -67,8 +69,11 @@ def read_current_user(current_user: CurrentUser):
 
 
 @router.get("/{user_id}")
-def read_user(user_id: str, db: Session = Depends(get_db)):
-    stmt = db.query(User).filter(User.user_id == user_id)
+def read_user(
+    user_id: str,
+    db_session: SessionDependency,
+):
+    stmt = db_session.query(User).filter(User.user_id == user_id)
     result = stmt.first()
 
     if not result:
@@ -82,30 +87,35 @@ def read_user(user_id: str, db: Session = Depends(get_db)):
 
 
 @router.delete("/{user_id}")
-def delete_user(user_id: str, db: Session = Depends(get_db)):
-    stmt = db.query(User).filter(User.user_id == user_id)
+def delete_user(
+    user_id: str,
+    db_session: SessionDependency,
+):
+    stmt = db_session.query(User).filter(User.user_id == user_id)
     result = stmt.first()
 
     if not result:
         return {"error": "User not found"}
 
-    db.delete(result)
-    db.commit()
+    db_session.delete(result)
+    db_session.commit()
 
     return {"message": "User deleted successfully"}
 
 
 @router.post("/login", response_model=TokenResponse)
 def login(
-    oauth2_formdata: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db),
+    oauth2_formdata: OAuth2PasswordRequestForm,
+    db_session: SessionDependency,
 ):
-    user = db.query(User).filter(User.user_id == oauth2_formdata.username).first()
+    user = (
+        db_session.query(User).filter(User.user_id == oauth2_formdata.username).first()
+    )
 
     if not user or not verify_password(oauth2_formdata.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="잘못된 사용자 ID 또는 비밀번호입니다.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
