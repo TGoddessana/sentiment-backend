@@ -39,7 +39,7 @@ def get_current_user(session: SessionDependency, token: Token) -> User:
             detail="유효하지 않은 토큰입니다.",
         )
 
-    user = session.query(User).filter(User.user_id == token_data).first()
+    user = session.query(User).filter(User.login_id == token_data).first()
 
     if not user:
         raise HTTPException(status_code=404, detail="없는 사용자입니다.")

@@ -1,19 +1,20 @@
-import logging
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
 
-from config.dependencies import get_db, SessionDependency, CurrentUser
+from config.dependencies import SessionDependency, CurrentUser
 from config.security import (
     get_password_hash,
     verify_password,
     create_access_token,
     create_refresh_token,
 )
-from .models import User
-from .schemas import UserCreateInput, LoginInput, TokenResponse
+from application.models import User
+from application.schemas import (
+    UserCreateInput,
+    TokenResponse,
+)
 
 router = APIRouter()
 
@@ -26,14 +27,14 @@ def create_user(
     request_body: UserCreateInput,
     db_session: SessionDependency,
 ):
-    if db_session.query(User).filter(User.user_id == request_body.user_id).first():
+    if db_session.query(User).filter(User.login_id == request_body.login_id).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="이미 존재하는 사용자 ID입니다.",
         )
 
     user = User(
-        user_id=request_body.user_id,
+        login_id=request_body.login_id,
         hashed_password=get_password_hash(request_body.password),
         nickname=request_body.nickname,
         gender=request_body.gender,
@@ -45,7 +46,7 @@ def create_user(
 
     return {
         "id": user.id,
-        "user_id": user.user_id,
+        "login_id": user.login_id,
         "nickname": user.nickname,
     }
 
@@ -63,7 +64,7 @@ def read_user_list(
 def read_current_user(current_user: CurrentUser):
     return {
         "id": current_user.id,
-        "user_id": current_user.user_id,
+        "user_id": current_user.login_id,
         "nickname": current_user.nickname,
     }
 
@@ -73,7 +74,7 @@ def read_user(
     user_id: str,
     db_session: SessionDependency,
 ):
-    stmt = db_session.query(User).filter(User.user_id == user_id)
+    stmt = db_session.query(User).filter(User.login_id == user_id)
     result = stmt.first()
 
     if not result:
@@ -81,7 +82,7 @@ def read_user(
 
     return {
         "id": result.id,
-        "user_id": result.user_id,
+        "user_id": result.login_id,
         "nickname": result.nickname,
     }
 
@@ -91,7 +92,7 @@ def delete_user(
     user_id: str,
     db_session: SessionDependency,
 ):
-    stmt = db_session.query(User).filter(User.user_id == user_id)
+    stmt = db_session.query(User).filter(User.login_id == user_id)
     result = stmt.first()
 
     if not result:
@@ -105,11 +106,11 @@ def delete_user(
 
 @router.post("/login", response_model=TokenResponse)
 def login(
-    oauth2_formdata: OAuth2PasswordRequestForm,
     db_session: SessionDependency,
+    oauth2_formdata: OAuth2PasswordRequestForm = Depends(),
 ):
     user = (
-        db_session.query(User).filter(User.user_id == oauth2_formdata.username).first()
+        db_session.query(User).filter(User.login_id == oauth2_formdata.username).first()
     )
 
     if not user or not verify_password(oauth2_formdata.password, user.hashed_password):
@@ -119,8 +120,8 @@ def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = create_access_token(str(user.user_id))
-    refresh_token = create_refresh_token(str(user.user_id))
+    access_token = create_access_token(str(user.login_id))
+    refresh_token = create_refresh_token(str(user.login_id))
 
     return TokenResponse(
         access_token=access_token,
