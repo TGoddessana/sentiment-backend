@@ -18,10 +18,13 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
 
     # JWT settings
-    JWT_SECRET_KEY: str = "your-secret-key-for-jwt"  # Should be set in .env in production
+    JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    # OpenAI
+    OPENAI_API_KEY: str
 
     @computed_field(return_type=str)
     @property
