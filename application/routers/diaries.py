@@ -1,6 +1,7 @@
 from datetime import date
 
 from fastapi import APIRouter, HTTPException
+from sqlalchemy import func
 from starlette import status
 
 from application.models import Diary
@@ -21,17 +22,31 @@ def create_diary(
     current_user: CurrentUser,
     db_session: SessionDependency,
 ):
+    today = date.today()
+
+    if (
+        db_session.query(Diary)
+        .filter(
+            Diary.user_id == current_user.id,
+            func.date(Diary.created_at) == today,
+        )
+        .exists()
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="이미 해당 날짜에 일기가 존재합니다.",
+        )
+
     diary = Diary(
         user_id=current_user.id,
-        date=date.fromisoformat(request_body.date),
         weather=request_body.weather,
         title=request_body.title,
         content=request_body.content,
         image_urls=request_body.image_urls,
     )
-
     db_session.add(diary)
-    db_session.commit()
+    db_session.flush()
+    current_user.add_coin(100)
     db_session.refresh(diary)
 
     return diary
