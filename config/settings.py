@@ -35,4 +35,4 @@ class Settings(BaseSettings):
         )
 
 
-settings = Settings(PROJECT_NAME="setntiment-backend")
+settings = Settings(PROJECT_NAME="sentiment-backend")
