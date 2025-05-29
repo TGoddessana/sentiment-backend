@@ -66,6 +66,7 @@ def read_current_user(current_user: CurrentUser):
         "id": current_user.id,
         "user_id": current_user.login_id,
         "nickname": current_user.nickname,
+        "coin": current_user.coin,
     }
 
 
