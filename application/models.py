@@ -36,6 +36,12 @@ class User(Base, IdMixin, TimeStampedMixin):
 
     diaries: Mapped[List["Diary"]] = relationship("Diary", back_populates="user")
 
+    def add_coin(self, amount: int) -> None:
+        """사용자에게 코인을 추가합니다."""
+        if amount < 0:
+            raise ValueError("코인은 음수로 추가할 수 없습니다.")
+        self.coin += amount
+
     def __repr__(self):
         return f"<User(id={self.id}, login_id={self.login_id})>"
 
@@ -44,7 +50,6 @@ class Diary(Base, IdMixin, TimeStampedMixin):
     __tablename__ = "diaries"
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    date: Mapped[date] = mapped_column(Date, nullable=False)
     weather: Mapped[str] = mapped_column(String(20), nullable=False)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     content: Mapped[str] = mapped_column(String(5000), nullable=False)
@@ -54,3 +59,16 @@ class Diary(Base, IdMixin, TimeStampedMixin):
 
     def __repr__(self):
         return f"<Diary(id={self.id}, user_id={self.user_id}, date={self.date}, title={self.title})>"
+
+
+class StoreItem(Base, IdMixin):
+    __tablename__ = "store_items"
+
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    category: Mapped[Literal["accessory", "background"]] = mapped_column(String(6))
+    price: Mapped[int] = mapped_column(nullable=False)
+    description: Mapped[str] = mapped_column(String(300), nullable=False)
+    image_url: Mapped[str] = mapped_column(String(200), nullable=False)
+
+    def __repr__(self):
+        return f"<StoreItem(id={self.id}, name={self.name}, category={self.category}, price={self.price})>"
