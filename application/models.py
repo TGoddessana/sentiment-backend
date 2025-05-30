@@ -32,8 +32,6 @@ class User(Base, IdMixin, TimeStampedMixin):
     login_id: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(100))
     nickname: Mapped[str] = mapped_column(String(30))
-    gender: Mapped[Literal["male", "female"]] = mapped_column(String(6))
-    birthday: Mapped[date] = mapped_column()
     coin: Mapped[int] = mapped_column(default=0)
 
     diaries: Mapped[List["Diary"]] = relationship("Diary", back_populates="user")
