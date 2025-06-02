@@ -41,7 +41,7 @@ def create_user(
         nickname=request_body.nickname,
     )
     db_session.add(user)
-    db_session.commit()
+    db_session.flush()
     db_session.refresh(user)
 
     return {
@@ -49,15 +49,6 @@ def create_user(
         "login_id": user.login_id,
         "nickname": user.nickname,
     }
-
-
-@router.get("/")
-def read_user_list(
-    db_session: SessionDependency,
-):
-    stmt = db_session.query(User)
-    result = stmt.all()
-    return result
 
 
 @router.get(
@@ -74,42 +65,12 @@ def read_current_user(current_user: CurrentUser):
     }
 
 
-@router.get("/{user_id}")
-def read_user(
-    user_id: str,
-    db_session: SessionDependency,
-):
-    stmt = db_session.query(User).filter(User.login_id == user_id)
-    result = stmt.first()
-
-    if not result:
-        return {"error": "User not found"}
-
-    return {
-        "id": result.id,
-        "user_id": result.login_id,
-        "nickname": result.nickname,
-    }
-
-
-@router.delete("/{user_id}")
-def delete_user(
-    user_id: str,
-    db_session: SessionDependency,
-):
-    stmt = db_session.query(User).filter(User.login_id == user_id)
-    result = stmt.first()
-
-    if not result:
-        return {"error": "User not found"}
-
-    db_session.delete(result)
-    db_session.commit()
-
-    return {"message": "User deleted successfully"}
-
-
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    summary="로그인",
+    description="사용자 ID와 비밀번호를 입력받아 로그인하고, 액세스 토큰과 리프레시 토큰을 반환하는 API입니다.",
+)
 def login(
     db_session: SessionDependency,
     oauth2_formdata: OAuth2PasswordRequestForm = Depends(),
