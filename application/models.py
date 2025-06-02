@@ -69,7 +69,7 @@ class Diary(Base, IdMixin, TimeStampedMixin):
         )
 
     def __repr__(self):
-        return f"<Diary(id={self.id}, user_id={self.user_id}, date={self.date}, title={self.title})>"
+        return f"<Diary(id={self.id}, user_id={self.user_id}, date={self.created_at}, title={self.title})>"
 
 
 class StoreItem(Base, IdMixin):
