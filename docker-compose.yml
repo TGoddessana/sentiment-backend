@@ -41,6 +41,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./uploads:/code/uploads
     depends_on:
       - web
     restart: always
