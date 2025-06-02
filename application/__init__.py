@@ -19,13 +19,6 @@ def create_app() -> FastAPI:
     admin.add_view(UserAdmin)
     admin.add_view(DiaryAdmin)
 
-    # Static files for uploads
-    app.mount(
-        f"/{settings.UPLOAD_DIR}",
-        StaticFiles(directory=settings.UPLOAD_DIR),
-        name="uploads",
-    )
-
     # Include routers
     app.include_router(
         router=users_router,
