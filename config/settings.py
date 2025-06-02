@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     )
 
     PROJECT_NAME: str
+    ADMIN_TITLE: str = "Sentiment 관리자 페이지"
+
+    UPLOAD_DIR: str = "uploads"
 
     POSTGRES_SERVER: str
     POSTGRES_PORT: int
