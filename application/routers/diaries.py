@@ -1,13 +1,16 @@
+import os
 from datetime import date
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Form, UploadFile
 from sqlalchemy import func, and_, exists, select
 from starlette import status
+from starlette.requests import Request
 
 from application.models import Diary
 from application.schemas import DiaryResponse, DiaryCreateInput, AnalyzedEmotion
+from application.utils import get_uploads_dir
 from config.dependencies import CurrentUser, SessionDependency
-
 
 router = APIRouter()
 
@@ -20,7 +23,10 @@ router = APIRouter()
     description="현재 로그인한 사용자가 일기를 작성하는 API입니다. 오늘 날짜에 이미 작성된 일기가 있는 경우, 오류를 반환합니다.",
 )
 def create_diary(
-    request_body: DiaryCreateInput,
+    request: Request,
+    request_formdata: Annotated[
+        DiaryCreateInput, Form(media_type="multipart/form-data")
+    ],
     current_user: CurrentUser,
     db_session: SessionDependency,
 ):
@@ -39,19 +45,32 @@ def create_diary(
             detail="이미 해당 날짜에 일기가 존재합니다.",
         )
 
+    image_urls = []
+
+    for file in request_formdata.image_files:
+        try:
+            contents = file.file.read()
+            upload_path = get_uploads_dir(current_user.login_id, file)
+            os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+            with open(upload_path, "wb") as f:
+                f.write(contents)
+            image_urls.append(upload_path)
+        finally:
+            file.file.close()
+
     diary = Diary(
         user_id=current_user.id,
-        weather=request_body.weather,
-        title=request_body.title,
-        content=request_body.content,
-        image_urls=request_body.image_urls,
+        weather=request_formdata.weather,
+        title=request_formdata.title,
+        content=request_formdata.content,
+        image_urls=image_urls,
     )
     db_session.add(diary)
     db_session.flush()
     current_user.add_coin(100)
     db_session.refresh(diary)
 
-    return diary
+    return DiaryResponse.from_diary(diary)
 
 
 @router.get(
@@ -94,32 +113,3 @@ def read_diary_by_id(
         )
 
     return DiaryResponse.from_diary(diary)
-
-
-@router.delete(
-    "/{diary_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="일기 삭제",
-    description="일기 ID를 통해 특정 일기를 삭제하는 API입니다. 현재 로그인한 사용자의 일기만 삭제할 수 있습니다.",
-)
-def delete_diary(
-    diary_id: int,
-    current_user: CurrentUser,
-    db_session: SessionDependency,
-):
-    stmt = select(Diary).where(
-        Diary.id == diary_id,
-        Diary.user_id == current_user.id,
-    )
-    result = db_session.execute(stmt)
-    diary = result.scalar_one_or_none()
-
-    if not diary:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="일기를 찾을 수 없습니다.",
-        )
-
-    db_session.delete(diary)
-
-    return None

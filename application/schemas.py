@@ -1,4 +1,6 @@
-from typing import Literal, List, Optional
+from typing import Literal, List, Optional, Annotated
+
+from fastapi import File, UploadFile
 from pydantic import BaseModel, Field, field_validator
 from datetime import date, datetime
 import re
@@ -25,16 +27,32 @@ class DiaryCreateInput(BaseModel):
     weather: str = Field(..., description="날씨")
     title: str = Field(..., description="제목")
     content: str = Field(..., description="일기 본문")
-    image_urls: Optional[List[str]] = Field(
-        default=[], description="첨부 이미지 URL들 (최대 5장)"
-    )
+    image_files: list[UploadFile] = Field(default=[], description="이미지 파일들")
 
-    @field_validator("image_urls")
+    @field_validator("image_files")
     @classmethod
-    def validate_image_urls(cls, v: List[str]) -> List[str]:
-        if len(v) > 5:
-            raise ValueError("이미지는 최대 5개까지만 첨부할 수 있습니다.")
-        return v
+    def validate_image_files(cls, files):
+        max_files = 5
+        max_size = 5 * 1024 * 1024
+        if len(files) > max_files:
+            raise ValueError(f"이미지는 최대 {max_files}장까지 업로드할 수 있습니다.")
+        for file in files:
+            if hasattr(file, "size"):
+                size = file.size
+            elif (
+                hasattr(file, "file")
+                and hasattr(file.file, "seek")
+                and hasattr(file.file, "tell")
+            ):
+                pos = file.file.tell()
+                file.file.seek(0, 2)
+                size = file.file.tell()
+                file.file.seek(pos)
+            else:
+                size = None
+            if size is not None and size > max_size:
+                raise ValueError(f"이미지 한 장의 크기는 5MB를 넘을 수 없습니다.")
+        return files
 
 
 class AnalyzedEmotion(BaseModel):
@@ -46,27 +64,22 @@ class AnalyzedEmotion(BaseModel):
 
 class DiaryResponse(BaseModel):
     id: int
-    user_id: int
     weather: str
     title: str
     content: str
     image_urls: list[str]
-    created_at: datetime
-    updated_at: datetime
-
+    date: date
     analyzed_emotion: AnalyzedEmotion | None = None
 
     @classmethod
     def from_diary(cls, diary: Diary) -> "DiaryResponse":
         return cls(
             id=diary.id,
-            user_id=diary.user_id,
             weather=diary.weather,
             title=diary.title,
             content=diary.content,
             image_urls=diary.image_urls,
-            created_at=diary.created_at,
-            updated_at=diary.updated_at,
+            date=diary.created_at.date(),
             analyzed_emotion=(
                 AnalyzedEmotion(
                     name=(
