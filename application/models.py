@@ -76,7 +76,7 @@ class StoreItem(Base, IdMixin):
     __tablename__ = "store_items"
 
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    category: Mapped[Literal["accessory", "background"]] = mapped_column(String(6))
+    category: Mapped[Literal["accessory", "background"]] = mapped_column(String(12))
     price: Mapped[int] = mapped_column(nullable=False)
     description: Mapped[str] = mapped_column(String(300), nullable=False)
     image_url: Mapped[str] = mapped_column(String(200), nullable=False)
