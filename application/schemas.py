@@ -1,9 +1,9 @@
-from typing import Literal, List, Optional, Annotated
-
-from fastapi import File, UploadFile
+from fastapi import UploadFile
 from pydantic import BaseModel, Field, field_validator
-from datetime import date, datetime
-import re
+from datetime import date
+
+from starlette.requests import Request
+
 from application.models import Diary
 
 
@@ -125,3 +125,34 @@ class WeeklySummary(BaseModel):
 class MonthlyAnalysis(BaseModel):
     weekly_emotions: list
     weekly_summaries: list[WeeklySummary]  # 4주치 주간 조언
+
+
+#########
+# STORE #
+#########
+
+
+class StoreItemResponse(BaseModel):
+    id: int
+    name: str
+    category: str
+    description: str
+    price: int
+    image_url: str | None
+
+    @classmethod
+    def from_store_item(cls, item, request: Request) -> "StoreItemResponse":
+        return cls(
+            id=item.id,
+            name=item.name,
+            category=item.category,
+            description=item.description,
+            price=item.price,
+            image_url=(
+                f"{request.base_url}{item.image_url}" if item.image_url else None
+            ),
+        )
+
+    @property
+    class Config:
+        from_attributes = True

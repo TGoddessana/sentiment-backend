@@ -1,6 +1,29 @@
-from sqladmin import ModelView
+import os
+from typing import Any
 
-from application.models import User, Diary
+from fastapi import UploadFile
+from sqladmin import ModelView
+from starlette.datastructures import FormData
+from starlette.requests import Request
+from wtforms import (
+    Form,
+    StringField,
+    IntegerField,
+    TextAreaField,
+    validators,
+    FileField,
+)
+
+from application.models import User, Diary, StoreItem
+from application.utils import write_file, remove_file
+from config.settings import settings
+
+
+class FileUploadField(FileField):
+    def process_formdata(self, valuelist: list[UploadFile]):
+        if valuelist:
+            path = write_file("admin", valuelist[0])
+            self.data = path
 
 
 class UserAdmin(ModelView, model=User):
@@ -58,3 +81,40 @@ class DiaryAdmin(ModelView, model=Diary):
         Diary.created_at,
         Diary.updated_at,
     ]
+
+
+class StoreItemAdmin(ModelView, model=StoreItem):
+    name = "상점 아이템"
+    name_plural = "상점 아이템 관리"
+    icon = "fa-solid fa-store"
+
+    column_list = [
+        StoreItem.id,
+        StoreItem.name,
+        StoreItem.price,
+        StoreItem.description,
+        StoreItem.image_url,
+    ]
+    column_details_list = [
+        StoreItem.id,
+        StoreItem.name,
+        StoreItem.price,
+        StoreItem.description,
+        StoreItem.image_url,
+    ]
+
+    async def on_model_delete(self, model: Any, request: Request) -> None:
+        """
+        모델 삭제 시 호출되는 메서드로, 상점 아이템이 삭제될 때 관련된 이미지 파일도 삭제합니다.
+        """
+        if model.image_url:
+            remove_file(model.image_url)
+
+    class StoreItemForm(Form):
+        name = StringField("이름", [validators.InputRequired()])
+        category = StringField("카테고리", [validators.InputRequired()])
+        price = IntegerField("가격", [validators.InputRequired()])
+        description = TextAreaField("설명", [validators.InputRequired()])
+        image_url = FileUploadField("이미지 URL", [validators.InputRequired()])
+
+    form = StoreItemForm
