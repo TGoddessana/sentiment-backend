@@ -9,7 +9,7 @@ from starlette.requests import Request
 
 from application.models import Diary
 from application.schemas import DiaryResponse, DiaryCreateInput, AnalyzedEmotion
-from application.utils import get_uploads_dir
+from application.utils import write_file
 from config.dependencies import CurrentUser, SessionDependency
 
 router = APIRouter()
@@ -30,12 +30,10 @@ def create_diary(
     current_user: CurrentUser,
     db_session: SessionDependency,
 ):
-    today = date.today()
-
     stmt = exists().where(
         and_(
             Diary.user_id == current_user.id,
-            func.date(Diary.created_at) == today,
+            func.date(Diary.created_at) == date.today(),
         )
     )
 
@@ -45,25 +43,15 @@ def create_diary(
             detail="이미 해당 날짜에 일기가 존재합니다.",
         )
 
-    image_urls = []
-
-    for file in request_formdata.image_files:
-        try:
-            contents = file.file.read()
-            upload_path = get_uploads_dir(current_user.login_id, file)
-            os.makedirs(os.path.dirname(upload_path), exist_ok=True)
-            with open(upload_path, "wb") as f:
-                f.write(contents)
-            image_urls.append(upload_path)
-        finally:
-            file.file.close()
-
     diary = Diary(
         user_id=current_user.id,
         weather=request_formdata.weather,
         title=request_formdata.title,
         content=request_formdata.content,
-        image_urls=image_urls,
+        image_urls=[
+            write_file(current_user.login_id, file)
+            for file in request_formdata.image_files
+        ],
     )
     db_session.add(diary)
     db_session.flush()
