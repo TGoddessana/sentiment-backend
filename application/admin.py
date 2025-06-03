@@ -32,7 +32,6 @@ class UserAdmin(ModelView, model=User):
     icon = "fa-solid fa-user"
 
     can_create = False
-    can_edit = False
 
     column_list = [
         User.id,
