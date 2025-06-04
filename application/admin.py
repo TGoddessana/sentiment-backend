@@ -46,8 +46,17 @@ class UserAdmin(ModelView, model=User):
         User.login_id,
         User.nickname,
         User.coin,
+        User.items,
         User.created_at,
         User.updated_at,
+    ]
+
+    form_columns = [
+        User.login_id,
+        User.nickname,
+        User.diaries,
+        User.coin,
+        User.items,
     ]
 
 
