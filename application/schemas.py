@@ -1,21 +1,29 @@
+from typing import Literal
+
 from fastapi import UploadFile
 from pydantic import BaseModel, Field, field_validator
-from datetime import date
+from datetime import date, datetime
 
 from starlette.requests import Request
 
-from application.models import Diary
+from application.models import Diary, User, StoreItem
+
+
+class UserResponse(BaseModel):
+    id: int
+    login_id: str
+    nickname: str
+    coin: int
+
+    @property
+    class Config:
+        from_attributes = True
 
 
 class UserCreateInput(BaseModel):
     login_id: str
     password: str
     nickname: str
-
-
-class LoginInput(BaseModel):
-    login_id: str
-    password: str
 
 
 class TokenResponse(BaseModel):
@@ -113,10 +121,6 @@ class DiaryResponse(BaseModel):
         from_attributes = True
 
 
-class DiaryContent(BaseModel):
-    content: str
-
-
 class WeeklySummary(BaseModel):
     week_number: int
     summary: str
@@ -140,18 +144,40 @@ class StoreItemResponse(BaseModel):
     price: int
     image_url: str | None
 
+    purchased: bool
+    equipped: bool
+
     @classmethod
-    def from_store_item(cls, item, request: Request) -> "StoreItemResponse":
+    def from_store_item(
+        cls,
+        request: Request,
+        store_item: StoreItem,
+        current_user: User,
+    ) -> "StoreItemResponse":
         return cls(
-            id=item.id,
-            name=item.name,
-            category=item.category,
-            description=item.description,
-            price=item.price,
+            id=store_item.id,
+            name=store_item.name,
+            category=store_item.category,
+            description=store_item.description,
+            price=store_item.price,
             image_url=(
-                f"{request.base_url}{item.image_url}" if item.image_url else None
+                f"{request.base_url}{store_item.image_url}"
+                if store_item.image_url
+                else None
             ),
+            purchased=current_user.has_item(item=store_item),
+            equipped=current_user.is_item_equipped(item=store_item),
         )
+
+    @property
+    class Config:
+        from_attributes = True
+
+
+class UserItemResponse(BaseModel):
+    id: int
+    item: StoreItemResponse
+    purchased_at: datetime
 
     @property
     class Config:
