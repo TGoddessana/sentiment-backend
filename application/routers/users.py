@@ -14,6 +14,7 @@ from application.models import User
 from application.schemas import (
     UserCreateInput,
     TokenResponse,
+    UserResponse,
 )
 
 router = APIRouter()
@@ -53,16 +54,12 @@ def create_user(
 
 @router.get(
     "/me",
+    response_model=UserResponse,
     summary="현재 사용자 정보",
     description="현재 로그인된 사용자의 정보를 반환하는 API입니다.",
 )
 def read_current_user(current_user: CurrentUser):
-    return {
-        "id": current_user.id,
-        "user_id": current_user.login_id,
-        "nickname": current_user.nickname,
-        "coin": current_user.coin,
-    }
+    return current_user
 
 
 @router.post(
