@@ -36,6 +36,26 @@ class UserAdmin(ModelView, model=User):
 
     can_create = False
 
+    column_labels = {
+        User.id: "사용자 ID",
+        User.login_id: "로그인 ID",
+        User.nickname: "닉네임",
+        User.coin: "보유 코인",
+        User.items: "보유 아이템들",
+        User.created_at: "가입일시",
+        User.updated_at: "수정일시",
+    }
+    column_formatters = {
+        User.coin: lambda m, _: f"{m.coin} 코인",
+        User.created_at: lambda m, _: m.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        User.updated_at: lambda m, _: m.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+    column_formatters_detail = {
+        User.created_at: lambda m, _: m.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        User.updated_at: lambda m, _: m.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
     column_list = [
         User.id,
         User.login_id,
@@ -155,3 +175,39 @@ class StoreItemAdmin(ModelView, model=StoreItem):
         image_url = FileUploadField("이미지 URL")
 
     form = StoreItemForm
+
+
+class UserItemAdmin(ModelView, model=UserItem):
+    name = "사용자 아이템"
+    name_plural = "사용자 아이템 관리"
+    icon = "fa-solid fa-box"
+
+    can_create = False
+
+    column_labels = {
+        UserItem.id: "아이템 ID",
+        UserItem.user: "사용자",
+        UserItem.item: "아이템",
+        UserItem.equipped: "장착 여부",
+        UserItem.created_at: "구매일시",
+    }
+    column_formatters = {
+        UserItem.user: lambda m, _: f"{m.user.nickname}({m.user.login_id})",
+        UserItem.item: lambda m, _: f"{m.item.name}({m.item.price}코인)",
+        UserItem.equipped: lambda m, _: "장착됨" if m.equipped else "장착 안 됨",
+        UserItem.created_at: lambda m, _: m.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+    column_list = [
+        UserItem.user,
+        UserItem.item,
+        UserItem.equipped,
+        UserItem.created_at,
+    ]
+    column_details_list = [
+        UserItem.id,
+        UserItem.user,
+        UserItem.item,
+        UserItem.equipped,
+        UserItem.created_at,
+    ]

@@ -5,7 +5,7 @@ from sqladmin import Admin
 from starlette.datastructures import FormData
 from fastapi.middleware.cors import CORSMiddleware
 
-from application.admin import UserAdmin, DiaryAdmin, StoreItemAdmin
+from application.admin import UserAdmin, DiaryAdmin, StoreItemAdmin, UserItemAdmin
 from application.routers.users import router as users_router
 from application.routers.diaries import router as diaries_router
 from application.routers.analysis import router as day_analysis_router
@@ -61,6 +61,7 @@ def create_app() -> FastAPI:
     admin.add_view(UserAdmin)
     admin.add_view(DiaryAdmin)
     admin.add_view(StoreItemAdmin)
+    admin.add_view(UserItemAdmin)
 
     # Include routers
     app.include_router(
