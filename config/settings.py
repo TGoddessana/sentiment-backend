@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     )
 
     PROJECT_NAME: str
+    SERVER_HOST: str
+    TRUSTED_ORIGINS: list[str]
+
     ADMIN_TITLE: str = "Sentiment 관리자 페이지"
 
     UPLOAD_DIR: str = "uploads"
