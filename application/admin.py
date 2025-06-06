@@ -1,9 +1,9 @@
-import os
 from typing import Any
 
 from fastapi import UploadFile
 from markupsafe import Markup
 from sqladmin import ModelView
+from sqlalchemy.orm import object_session
 from starlette.requests import Request
 from wtforms import (
     Form,
@@ -14,7 +14,7 @@ from wtforms import (
     FileField,
 )
 
-from application.models import User, Diary, StoreItem
+from application.models import User, Diary, StoreItem, UserItem
 from application.utils import write_file, remove_file
 from config.settings import settings
 
@@ -61,6 +61,18 @@ class UserAdmin(ModelView, model=User):
         User.coin,
         User.items,
     ]
+
+    async def on_model_change(
+        self, data: dict, model: User, is_created: bool, request: Request
+    ) -> None:
+        original_items_pks = {str(item.id) for item in model.items}
+        deleted_items_pks = original_items_pks - set(data["items"])
+
+        session = object_session(model)
+        for target_pk in deleted_items_pks:
+            item = session.get(UserItem, target_pk)
+            if item:
+                session.delete(item)
 
 
 class DiaryAdmin(ModelView, model=Diary):
