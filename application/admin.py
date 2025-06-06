@@ -2,8 +2,8 @@ import os
 from typing import Any
 
 from fastapi import UploadFile
+from markupsafe import Markup
 from sqladmin import ModelView
-from starlette.datastructures import FormData
 from starlette.requests import Request
 from wtforms import (
     Form,
@@ -22,6 +22,9 @@ from config.settings import settings
 class FileUploadField(FileField):
     def process_formdata(self, valuelist: list[UploadFile]):
         if valuelist:
+            if isinstance(valuelist[0], str):
+                self.data = valuelist[0]
+                return
             path = write_file("admin", valuelist[0])
             self.data = path
 
@@ -91,6 +94,13 @@ class DiaryAdmin(ModelView, model=Diary):
     ]
 
 
+def format_image_url(model, attribute) -> Markup:
+    return Markup(
+        f'<img src="http://{settings.SERVER_HOST}/{getattr(model, attribute)}" '
+        f'style="max-width: 300px; max-height: 300px;" />'
+    )
+
+
 class StoreItemAdmin(ModelView, model=StoreItem):
     name = "상점 아이템"
     name_plural = "상점 아이템 관리"
@@ -118,11 +128,18 @@ class StoreItemAdmin(ModelView, model=StoreItem):
         if model.image_url:
             remove_file(model.image_url)
 
+    column_formatters = {
+        "image_url": format_image_url,
+    }
+    column_formatters_detail = {
+        "image_url": format_image_url,
+    }
+
     class StoreItemForm(Form):
         name = StringField("이름", [validators.InputRequired()])
         category = StringField("카테고리", [validators.InputRequired()])
         price = IntegerField("가격", [validators.InputRequired()])
         description = TextAreaField("설명", [validators.InputRequired()])
-        image_url = FileUploadField("이미지 URL", [validators.InputRequired()])
+        image_url = FileUploadField("이미지 URL")
 
     form = StoreItemForm
