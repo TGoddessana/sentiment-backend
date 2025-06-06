@@ -85,6 +85,7 @@ def get_store_item(
 )
 def purchase_item(
     item_id: int,
+    request: Request,
     current_user: CurrentUser,
     db_session: SessionDependency,
 ):
@@ -101,15 +102,12 @@ def purchase_item(
 
         return UserItemResponse(
             id=user_item.id,
-            item=StoreItemResponse(
-                id=item.id,
-                name=item.name,
-                category=item.category,
-                description=item.description,
-                price=item.price,
-                image_url=item.image_url,
+            item=StoreItemResponse.from_store_item(
+                request=request,
+                store_item=item,
+                current_user=current_user,
             ),
-            purchased_at=user_item.created_at,
+            purchased_at=user_item.purchased_at,
         )
     except ValueError as e:
         raise HTTPException(
