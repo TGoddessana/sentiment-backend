@@ -3,6 +3,7 @@ from sqlalchemy import select
 from starlette.requests import Request
 
 from application.models import StoreItem, ItemCategory
+from application.crud import get_model_or_404
 from application.schemas import (
     StoreItemResponse,
     UserItemResponse,
@@ -10,17 +11,6 @@ from application.schemas import (
 from config.dependencies import SessionDependency, CurrentUser
 
 router = APIRouter()
-
-
-def _get_item_or_404(item_id: int, db_session: SessionDependency) -> StoreItem:
-    """
-    주어진 ID로 상점 아이템을 조회하고, 없으면 404 에러를 발생시킵니다.
-    """
-    stmt = select(StoreItem).where(StoreItem.id == item_id)
-    item = db_session.scalar(stmt)
-    if not item:
-        raise HTTPException(status_code=404, detail="상점 아이템을 찾을 수 없습니다.")
-    return item
 
 
 @router.get(
@@ -41,15 +31,15 @@ def get_store_items(
     stmt = (
         select(StoreItem).where(StoreItem.category == category).order_by(StoreItem.id)
     )
-    items = db_session.scalars(stmt).all()
+    store_items = db_session.scalars(stmt).all()
 
     return [
         StoreItemResponse.from_store_item(
             request=request,
-            store_item=item,
+            store_item=store_item,
             current_user=current_user,
         )
-        for item in items
+        for store_item in store_items
     ]
 
 
@@ -68,10 +58,10 @@ def get_store_item(
     """
     주어진 ID로 상점 아이템의 상세 정보를 조회합니다.
     """
-    item = _get_item_or_404(item_id, db_session)
+    store_item = get_model_or_404(item_id, db_session, StoreItem)
     return StoreItemResponse.from_store_item(
         request=request,
-        store_item=item,
+        store_item=store_item,
         current_user=current_user,
     )
 
@@ -92,10 +82,10 @@ def purchase_item(
     """
     상점에서 아이템을 구매합니다.
     """
-    item = _get_item_or_404(item_id, db_session)
+    store_item = get_model_or_404(item_id, db_session, StoreItem)
 
     try:
-        user_item = current_user.purchase_item(item)
+        user_item = current_user.purchase_item(store_item)
         db_session.add(user_item)
         db_session.commit()
         db_session.refresh(user_item)
@@ -104,7 +94,7 @@ def purchase_item(
             id=user_item.id,
             item=StoreItemResponse.from_store_item(
                 request=request,
-                store_item=item,
+                store_item=store_item,
                 current_user=current_user,
             ),
             purchased_at=user_item.created_at,
@@ -130,12 +120,12 @@ def equip_item(
     """
     구매한 아이템을 장착합니다.
     """
-    item = _get_item_or_404(item_id, db_session)
+    store_item = get_model_or_404(item_id, db_session, StoreItem)
 
     try:
-        current_user.equip_item(item)
+        current_user.equip_item(store_item)
         db_session.commit()
-        return {"message": f"{item.category} 아이템이 장착되었습니다."}
+        return {"message": f"{store_item.category} 아이템이 장착되었습니다."}
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -157,12 +147,12 @@ def equip_item(
     """
     구매한 아이템을 장착 해제합니다.
     """
-    item = _get_item_or_404(item_id, db_session)
+    store_item = get_model_or_404(item_id, db_session, StoreItem)
 
     try:
-        current_user.unequip_item(item)
+        current_user.unequip_item(store_item)
         db_session.commit()
-        return {"message": f"{item.name} 아이템이 장착 해제되었습니다."}
+        return {"message": f"{store_item.name} 아이템이 장착 해제되었습니다."}
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

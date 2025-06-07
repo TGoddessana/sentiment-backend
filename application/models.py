@@ -1,6 +1,6 @@
 from enum import Enum
 from datetime import datetime, date
-from typing import Literal, List, Optional
+from typing import List
 
 from sqlalchemy import String, Date, DateTime, func, ForeignKey, JSON, Boolean, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -9,11 +9,18 @@ from application.constants import Emotion
 from config.db import Base
 
 
-class IdMixin:
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+class IdModel(Base):
+    __abstract__ = True
+
+    id: Mapped[int] = mapped_column(
+        primary_key=True,
+        autoincrement=True,
+    )
 
 
-class TimeStampedMixin:
+class TimeStampedModel(Base):
+    __abstract__ = True
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -27,7 +34,7 @@ class TimeStampedMixin:
     )
 
 
-class User(Base, IdMixin, TimeStampedMixin):
+class User(IdModel, TimeStampedModel):
     __tablename__ = "users"
 
     login_id: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
@@ -111,7 +118,7 @@ class User(Base, IdMixin, TimeStampedMixin):
         return f"User(id={self.id}, login_id={self.login_id})"
 
 
-class Diary(Base, IdMixin, TimeStampedMixin):
+class Diary(IdModel, TimeStampedModel):
     __tablename__ = "diaries"
 
     weather: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -142,7 +149,7 @@ class ItemCategory(str, Enum):
     BACKGROUND = "background"
 
 
-class StoreItem(Base, IdMixin):
+class StoreItem(IdModel):
     __tablename__ = "store_items"
 
     name: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -157,7 +164,7 @@ class StoreItem(Base, IdMixin):
         return f"StoreItem(id={self.id}, name={self.name}, category={self.category}, price={self.price})"
 
 
-class UserItem(Base, IdMixin, TimeStampedMixin):
+class UserItem(IdModel, TimeStampedModel):
     """사용자가 구매한 아이템을 추적하는 모델"""
 
     __tablename__ = "user_items"
