@@ -107,7 +107,7 @@ def purchase_item(
                 store_item=item,
                 current_user=current_user,
             ),
-            purchased_at=user_item.purchased_at,
+            purchased_at=user_item.created_at,
         )
     except ValueError as e:
         raise HTTPException(
