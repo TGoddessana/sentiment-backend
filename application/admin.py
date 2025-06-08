@@ -154,6 +154,7 @@ class StoreItemAdmin(ModelView, model=StoreItem):
         StoreItem.price,
         StoreItem.description,
         StoreItem.item_image_url,
+        StoreItem.applied_image_url,
     ]
     column_details_list = [
         StoreItem.id,
@@ -161,6 +162,7 @@ class StoreItemAdmin(ModelView, model=StoreItem):
         StoreItem.price,
         StoreItem.description,
         StoreItem.item_image_url,
+        StoreItem.applied_image_url,
     ]
 
     async def on_model_delete(self, model: Any, request: Request) -> None:
@@ -171,10 +173,12 @@ class StoreItemAdmin(ModelView, model=StoreItem):
             remove_file(model.item_image_url)
 
     column_formatters = {
-        "image_url": format_image_url,
+        "item_image_url": format_image_url,
+        "applied_image_url": format_image_url,
     }
     column_formatters_detail = {
-        "image_url": format_image_url,
+        "item_image_url": format_image_url,
+        "applied_image_url": format_image_url,
     }
 
     class StoreItemForm(Form):
@@ -182,7 +186,8 @@ class StoreItemAdmin(ModelView, model=StoreItem):
         category = StringField("카테고리", [validators.InputRequired()])
         price = IntegerField("가격", [validators.InputRequired()])
         description = TextAreaField("설명", [validators.InputRequired()])
-        image_url = FileUploadField("이미지 URL")
+        item_image_url = FileUploadField("상품 이미지 URL")
+        applied_image_url = FileUploadField("적용 이미지 URL")
 
     form = StoreItemForm
 
