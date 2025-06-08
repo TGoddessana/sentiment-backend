@@ -3,6 +3,7 @@ from datetime import date
 from typing import Annotated, Dict
 
 from fastapi import APIRouter, HTTPException, Form, UploadFile
+from fastapi.params import Query
 from sqlalchemy import func, and_, exists, select
 from starlette import status
 from starlette.requests import Request
@@ -10,9 +11,10 @@ from starlette.requests import Request
 from application.models import Diary
 from application.schemas import (
     DiaryResponse,
-    DiaryListResponse,
+    DiariesDictResponse,
     DiaryCreateInput,
     AnalyzedEmotion,
+    DiaryListParams,
 )
 from application.utils import write_file
 from config.dependencies import CurrentUser, SessionDependency
@@ -68,29 +70,28 @@ def create_diary(
 
 @router.get(
     "/",
-    response_model=Dict[str, DiaryListResponse],
+    response_model=DiariesDictResponse,
     summary="일기 목록 조회",
     description="현재 로그인한 사용자가 작성한 일기 목록을 조회하는 API입니다. 사용자가 지금까지 작성한 모든 일기를 반환합니다. 반환 형식은 {'날짜': 일기}의 딕셔너리입니다.",
 )
 def read_diaries(
     request: Request,
     current_user: CurrentUser,
-    month: int,
+    params: Annotated[DiaryListParams, Query()],
     db_session: SessionDependency,
 ):
-    stmt = select(Diary).where(
-        Diary.user_id == current_user.id,
-        func.extract("month", Diary.created_at) == month,
+    stmt = (
+        select(Diary)
+        .where(
+            Diary.user_id == current_user.id,
+            func.extract("year", Diary.created_at) == params.year,
+            func.extract("month", Diary.created_at) == params.month,
+        )
+        .order_by(Diary.created_at.desc())
     )
-
     diaries = db_session.execute(stmt).scalars().all()
 
-    return {
-        diary.created_at.strftime("%Y-%m-%d"): DiaryListResponse.from_diary(
-            request=request, diary=diary
-        )
-        for diary in diaries
-    }
+    return DiariesDictResponse.from_diaries(request=request, diaries=diaries)
 
 
 @router.get(

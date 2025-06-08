@@ -1,7 +1,5 @@
-from typing import Literal
-
 from fastapi import UploadFile
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, RootModel, Field, field_validator
 from datetime import date, datetime
 
 from starlette.requests import Request
@@ -69,6 +67,15 @@ class AnalyzedEmotion(BaseModel):
     emoji: str
     message: str
 
+    @classmethod
+    def from_emotion_enum(cls, emotion_enum):
+        return cls(
+            name=emotion_enum.name,
+            korean_name=emotion_enum.korean_name,
+            emoji=emotion_enum.emoji,
+            message=emotion_enum.message,
+        )
+
 
 class DiaryResponse(BaseModel):
     id: int
@@ -80,37 +87,22 @@ class DiaryResponse(BaseModel):
     analyzed_emotion: AnalyzedEmotion | None = None
 
     @classmethod
-    def from_diary(cls, diary: Diary) -> "DiaryResponse":
+    def from_diary(
+        cls,
+        request: Request,
+        diary: Diary,
+    ) -> "DiaryResponse":
         return cls(
             id=diary.id,
             weather=diary.weather,
             title=diary.title,
             content=diary.content,
-            image_urls=diary.image_urls,
+            image_urls=[
+                f"{request.base_url}{image_url}" for image_url in diary.image_urls
+            ],
             date=diary.created_at.date(),
             analyzed_emotion=(
-                AnalyzedEmotion(
-                    name=(
-                        diary.get_analyzed_emotion_enum().name
-                        if diary.get_analyzed_emotion_enum()
-                        else None
-                    ),
-                    korean_name=(
-                        diary.get_analyzed_emotion_enum().korean_name
-                        if diary.get_analyzed_emotion_enum()
-                        else None
-                    ),
-                    emoji=(
-                        diary.get_analyzed_emotion_enum().emoji
-                        if diary.get_analyzed_emotion_enum()
-                        else None
-                    ),
-                    message=(
-                        diary.get_analyzed_emotion_enum().message
-                        if diary.get_analyzed_emotion_enum()
-                        else None
-                    ),
-                )
+                AnalyzedEmotion.from_emotion_enum(diary.get_analyzed_emotion_enum())
                 if diary.get_analyzed_emotion_enum()
                 else None
             ),
@@ -119,6 +111,64 @@ class DiaryResponse(BaseModel):
     @property
     class Config:
         from_attributes = True
+
+
+class DiaryListParams(BaseModel):
+    year_and_month: str = Field(
+        ...,
+        description="조회할 연도와 월을 'YYYY-MM' 형식으로 입력하세요.",
+        pattern=r"^\d{4}-(0[1-9]|1[0-2])$",
+    )
+
+    @property
+    def year(self) -> int:
+        return int(self.year_and_month.split("-")[0])
+
+    @property
+    def month(self) -> int:
+        return int(self.year_and_month.split("-")[1])
+
+
+class DiariesDictResponse(RootModel):
+    class _DiaryList(BaseModel):
+        id: int
+        weather: str
+        title: str
+        date: date
+        analyzed_emotion: AnalyzedEmotion | None = None
+
+        @classmethod
+        def from_diary(
+            cls,
+            request: Request,
+            diary: Diary,
+        ) -> "DiariesDictResponse._DiaryList":
+            return cls(
+                id=diary.id,
+                weather=diary.weather,
+                title=diary.title,
+                date=diary.created_at.date(),
+                analyzed_emotion=(
+                    AnalyzedEmotion.from_emotion_enum(diary.get_analyzed_emotion_enum())
+                    if diary.get_analyzed_emotion_enum()
+                    else None
+                ),
+            )
+
+    root: dict[str, _DiaryList]
+
+    @classmethod
+    def from_diaries(
+        cls, request: Request, diaries: list[Diary]
+    ) -> "DiariesDictResponse":
+        return cls(
+            root={
+                diary.created_at.strftime("%Y-%m-%d"): cls._DiaryList.from_diary(
+                    request=request, diary=diary
+                )
+                for diary in diaries
+            }
+        )
 
 
 class WeeklySummary(BaseModel):
@@ -161,8 +211,8 @@ class StoreItemResponse(BaseModel):
             description=store_item.description,
             price=store_item.price,
             image_url=(
-                f"{request.base_url}{store_item.image_url}"
-                if store_item.image_url
+                f"{request.base_url}{store_item.item_image_url}"
+                if store_item.item_image_url
                 else None
             ),
             purchased=current_user.has_item(item=store_item),
