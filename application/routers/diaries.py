@@ -90,7 +90,6 @@ def read_diaries(
         .order_by(Diary.date.desc())
     )
     diaries = db_session.execute(stmt).scalars().all()
-    print(diaries)
 
     return {
         diary.date: DiaryCalendarResponse.from_diary(request=request, diary=diary)
