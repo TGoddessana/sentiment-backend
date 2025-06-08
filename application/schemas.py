@@ -105,9 +105,11 @@ class DiaryResponse(BaseModel):
             weather=diary.weather,
             title=diary.title,
             content=diary.content,
-            image_urls=[
-                f"{request.base_url}{image_url}" for image_url in diary.image_urls
-            ],
+            image_urls=(
+                [f"{request.base_url}{image_url}" for image_url in diary.image_urls]
+                if diary.image_urls
+                else []
+            ),
             date=diary.date,
             created_at=diary.created_at,
             updated_at=diary.updated_at,
