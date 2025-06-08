@@ -13,6 +13,34 @@ class UserResponse(BaseModel):
     nickname: str
     coin: int
 
+    equipped_accessory_image_url: str | None = None
+    equipped_background_image_url: str | None = None
+
+    @classmethod
+    def from_user(
+        cls,
+        request: Request,
+        user: User,
+    ) -> "UserResponse":
+
+        return cls(
+            id=user.id,
+            login_id=user.login_id,
+            nickname=user.nickname,
+            coin=user.coin,
+            equipped_accessory_image_url=(
+                f"{request.base_url}{user.equipped_accessory.applied_image_url}"
+                if user.equipped_accessory and user.equipped_accessory.applied_image_url
+                else None
+            ),
+            equipped_background_image_url=(
+                f"{request.base_url}{user.equipped_background.applied_image_url}"
+                if user.equipped_background
+                and user.equipped_background.applied_image_url
+                else None
+            ),
+        )
+
     @property
     class Config:
         from_attributes = True

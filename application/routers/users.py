@@ -2,6 +2,8 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import select
+from starlette.requests import Request
 
 from config.dependencies import SessionDependency, CurrentUser
 from config.security import (
@@ -10,7 +12,7 @@ from config.security import (
     create_access_token,
     create_refresh_token,
 )
-from application.models import User
+from application.models import User, UserItem
 from application.schemas import (
     UserCreateInput,
     TokenResponse,
@@ -58,8 +60,21 @@ def create_user(
     summary="현재 사용자 정보",
     description="현재 로그인된 사용자의 정보를 반환하는 API입니다.",
 )
-def read_current_user(current_user: CurrentUser):
-    return current_user
+def read_current_user(
+    request: Request,
+    current_user: CurrentUser,
+    db_session: SessionDependency,
+):
+
+    # equipped: true 인 아이템만 필터링
+    # stmt = select(UserItem).where(
+    #     UserItem.user_id == current_user.id,
+    #     UserItem.equipped.is_(True),
+    # )
+    # equipped_items = db_session.scalars(stmt).all()
+    # print(f"Equipped Items: {equipped_items}")
+
+    return UserResponse.from_user(request, current_user)
 
 
 @router.post(

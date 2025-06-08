@@ -45,6 +45,29 @@ class User(IdModel, TimeStampedModel):
     diaries: Mapped[List["Diary"]] = relationship("Diary", back_populates="user")
     items: Mapped[List["UserItem"]] = relationship("UserItem", back_populates="user")
 
+    @property
+    def equipped_accessory(self) -> "StoreItem":
+        """
+        사용자가 장착한 액세서리 아이템을 반환합니다.
+        """
+        for user_item in self.items:
+            if user_item.equipped and user_item.item.category == ItemCategory.ACCESSORY:
+                return user_item.item
+        return None
+
+    @property
+    def equipped_background(self) -> "StoreItem":
+        """
+        사용자가 장착한 배경 아이템을 반환합니다.
+        """
+        for user_item in self.items:
+            if (
+                user_item.equipped
+                and user_item.item.category == ItemCategory.BACKGROUND
+            ):
+                return user_item.item
+        return None
+
     def add_coin(self, amount: int) -> None:
         """사용자에게 코인을 추가합니다."""
         if amount < 0:
