@@ -13,11 +13,20 @@ client = OpenAI(api_key=settings.OPENAI_API_KEY)
 def analyze_diary_content(diary_content) -> Emotion:
     prompt = dedent(
         f"""다음 일기 내용을 분석하여 감정을 분류해주세요. 감정은 다음 5가지 중 하나로 분류해주세요.
+        
             - NEUTRAL
             - HAPPY
             - SAD
             - ANXIOUS
             - ANGRY
+            - TIRED
+            - LONELY
+            - BORED
+            - REGRETFUL
+            - HOPEFUL
+            - JEALOUS
+            - CONFUSED
+            - EMBARRASSED
         
             일기 내용:
             "{diary_content}"
