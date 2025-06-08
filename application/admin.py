@@ -139,7 +139,7 @@ class DiaryAdmin(ModelView, model=Diary):
 def format_image_url(model, attribute) -> Markup:
     return Markup(
         f'<img src="http://{settings.SERVER_HOST}/{getattr(model, attribute)}" '
-        f'style="max-width: 300px; max-height: 300px;" />'
+        f'style="max-width: 100px; max-height: 100px;" />'
     )
 
 
@@ -148,6 +148,15 @@ class StoreItemAdmin(ModelView, model=StoreItem):
     name_plural = "상점 아이템 관리"
     icon = "fa-solid fa-store"
 
+    column_labels = {
+        StoreItem.id: "아이템 ID",
+        StoreItem.name: "이름",
+        StoreItem.category: "카테고리",
+        StoreItem.price: "가격",
+        StoreItem.description: "설명",
+        StoreItem.item_image_url: "상품 이미지 URL",
+        StoreItem.applied_image_url: "적용 이미지 URL",
+    }
     column_list = [
         StoreItem.id,
         StoreItem.name,
