@@ -156,7 +156,8 @@ class StoreItem(IdModel):
     category: Mapped[ItemCategory] = mapped_column(String(12))
     price: Mapped[int] = mapped_column(nullable=False)
     description: Mapped[str] = mapped_column(String(300), nullable=False)
-    image_url: Mapped[str] = mapped_column(String(200), nullable=False)
+    item_image_url: Mapped[str] = mapped_column(String(200), nullable=False)
+    applied_image_url: Mapped[str] = mapped_column(String(200), nullable=False)
 
     users: Mapped[List["UserItem"]] = relationship("UserItem", back_populates="item")
 

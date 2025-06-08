@@ -143,22 +143,22 @@ class StoreItemAdmin(ModelView, model=StoreItem):
         StoreItem.name,
         StoreItem.price,
         StoreItem.description,
-        StoreItem.image_url,
+        StoreItem.item_image_url,
     ]
     column_details_list = [
         StoreItem.id,
         StoreItem.name,
         StoreItem.price,
         StoreItem.description,
-        StoreItem.image_url,
+        StoreItem.item_image_url,
     ]
 
     async def on_model_delete(self, model: Any, request: Request) -> None:
         """
         모델 삭제 시 호출되는 메서드로, 상점 아이템이 삭제될 때 관련된 이미지 파일도 삭제합니다.
         """
-        if model.image_url:
-            remove_file(model.image_url)
+        if model.item_image_url:
+            remove_file(model.item_image_url)
 
     column_formatters = {
         "image_url": format_image_url,
