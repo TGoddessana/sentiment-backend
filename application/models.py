@@ -46,6 +46,9 @@ class User(IdModel, TimeStampedModel):
     weekly_reports: Mapped[List["WeeklyReport"]] = relationship(
         "WeeklyReport", back_populates="user"
     )
+    monthly_reports: Mapped[List["MonthlyReport"]] = relationship(
+        "MonthlyReport", back_populates="user"
+    )
     items: Mapped[List["UserItem"]] = relationship("UserItem", back_populates="user")
 
     @property
@@ -186,6 +189,20 @@ class WeeklyReport(IdModel):
 
     def __repr__(self):
         return f"WeeklyReport(id={self.id}, user_id={self.user_id}, start_date={self.start_date}, end_date={self.end_date})"
+
+
+class MonthlyReport(IdModel):
+    __tablename__ = "monthly_reports"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    advice: Mapped[str] = mapped_column(String(500), nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="monthly_reports")
+
+    def __repr__(self):
+        return f"MonthlyReport(id={self.id}, user_id={self.user_id}, start_date={self.start_date}, end_date={self.end_date})"
 
 
 class ItemCategory(str, Enum):

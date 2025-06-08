@@ -14,7 +14,14 @@ from wtforms import (
     FileField,
 )
 
-from application.models import User, Diary, StoreItem, UserItem, WeeklyReport
+from application.models import (
+    User,
+    Diary,
+    StoreItem,
+    UserItem,
+    WeeklyReport,
+    MonthlyReport,
+)
 from application.utils import write_file, remove_file
 from config.settings import settings
 
@@ -169,6 +176,35 @@ class WeeklyReportAdmin(ModelView, model=WeeklyReport):
         WeeklyReport.start_date,
         WeeklyReport.end_date,
         WeeklyReport.advice,
+    ]
+
+
+class MonthlyReportAdmin(ModelView, model=MonthlyReport):
+    name = "월간 리포트"
+    name_plural = "월간 리포트 관리"
+    icon = "fa-solid fa-calendar-alt"
+
+    can_create = False
+
+    column_labels = {
+        MonthlyReport.id: "리포트 ID",
+        MonthlyReport.user: "사용자",
+        MonthlyReport.start_date: "시작 날짜",
+        MonthlyReport.end_date: "종료 날짜",
+        MonthlyReport.advice: "조언",
+    }
+    column_list = [
+        MonthlyReport.user,
+        MonthlyReport.start_date,
+        MonthlyReport.end_date,
+        MonthlyReport.advice,
+    ]
+    column_details_list = [
+        MonthlyReport.id,
+        MonthlyReport.user,
+        MonthlyReport.start_date,
+        MonthlyReport.end_date,
+        MonthlyReport.advice,
     ]
 
 

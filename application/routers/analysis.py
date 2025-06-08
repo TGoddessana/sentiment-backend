@@ -4,10 +4,11 @@ from fastapi import APIRouter
 from sqlalchemy import select
 
 from application.constants import Emotion
-from application.models import Diary, WeeklyReport
+from application.models import Diary, WeeklyReport, MonthlyReport
 from application.ai import (
     analyze_diary_emotion,
     analyze_weekly_emotions,
+    analyze_monthly_emotions,
 )
 from application.schemas import WeeklyReportRequest, MonthlyReportRequest
 from config.dependencies import SessionDependency, CurrentUser
@@ -62,61 +63,49 @@ def analyze_monthly(
     diaries = db_session.execute(stmt).scalars().all()
 
     # 날짜: 감정 형태로 변환, 감정이 없을 경우 None으로 설정, 일기가 작성되지 않은 경우에도 날짜는 포함
-    # {
-    #     "week_1":
-    #         ["null, "불안", "행복", "슬픔", "행복", "행복", "행복"],
-    #     "week_2":
-    #         ["행복", "행복", "행복", "행복", "행복", "행복", "행복"],
-    #     // .. 4 혹은 "5주차"까지
-    # }
+    emotion_timeline = {}
+    _start_date, _end_date = (
+        monthly_report_request.start_date,
+        monthly_report_request.end_date,
+    )
+    while _start_date <= _end_date:
+        emotion_timeline[_start_date] = None
+        _start_date = _start_date + datetime.timedelta(days=1)
 
-    emotions = {}
-    _start_date = monthly_report_request.start_date
-    _end_date = monthly_report_request.end_date
-    _week_number = 1
-    _total_week = _start_date.isocalendar()[1] - _start_date.isocalendar()[1] + 1
-    print(_start_date.isocalendar(), _end_date.isocalendar())
-    print(f"Total weeks: {_total_week}")
-
-    return emotions
+    for diary in diaries:
+        emotion = diary.get_analyzed_emotion_enum()
+        emotion_timeline[diary.date] = emotion.korean_name if emotion else None
 
     # 이미 월간 리포트가 존재하는지 확인
-    # stmt = select(WeeklyReport).where(
-    #     WeeklyReport.user_id == current_user.id,
-    #     WeeklyReport.start_date == monthly_report_request.start_date,
-    #     WeeklyReport.end_date == monthly_report_request.end_date,
-    # )
-    # existing_report = db_session.execute(stmt).scalar_one_or_none()
-    # if existing_report:
-    #     return {
-    #         "start_date": existing_report.start_date,
-    #         "end_date": existing_report.end_date,
-    #         "emotion_timeline": emotion_timeline,
-    #         "advice": existing_report.advice,
-    #     }
+    stmt = select(MonthlyReport).where(
+        MonthlyReport.user_id == current_user.id,
+        MonthlyReport.start_date == monthly_report_request.start_date,
+        MonthlyReport.end_date == monthly_report_request.end_date,
+    )
+    existing_report = db_session.execute(stmt).scalar_one_or_none()
+    if existing_report:
+        return {
+            "start_date": existing_report.start_date,
+            "end_date": existing_report.end_date,
+            "emotion_timeline": emotion_timeline,
+            "advice": existing_report.advice,
+        }
 
-    # weekly_reports = (
-    #     db_session.query(WeeklyReport)
-    #     .filter(
-    #         WeeklyReport.user_id == current_user.id,
-    #         WeeklyReport.start_date >= monthly_report_request.start_date,
-    #         WeeklyReport.end_date <= monthly_report_request.end_date,
-    #     )
-    #     .all()
-    # )
-    #
-    # # advice_list = [report.advice for report in weekly_reports]
-    #
-    # monthly_report = WeeklyReport(
-    #     user_id=current_user.id,
-    #     start_date=monthly_report_request.start_date,
-    #     end_date=monthly_report_request.end_date,
-    #     advice=analyze_weekly_emotions(emotion_timeline),
-    # )
-    # db_session.add(monthly_report)
-    # db_session.commit()
+    monthly_report = MonthlyReport(
+        user_id=current_user.id,
+        start_date=monthly_report_request.start_date,
+        end_date=monthly_report_request.end_date,
+        advice=analyze_monthly_emotions(emotion_timeline),
+    )
+    db_session.add(monthly_report)
+    db_session.commit()
 
-    return {}
+    return {
+        "start_date": monthly_report.start_date,
+        "end_date": monthly_report.end_date,
+        "emotion_timeline": emotion_timeline,
+        "advice": monthly_report.advice,
+    }
 
 
 @router.post(

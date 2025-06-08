@@ -12,6 +12,7 @@ from application.admin import (
     StoreItemAdmin,
     UserItemAdmin,
     WeeklyReportAdmin,
+    MonthlyReportAdmin,
 )
 from application.monkeypatch import apply_monkeypatch
 from application.routers.users import router as users_router
@@ -58,6 +59,7 @@ def create_app() -> FastAPI:
     admin.add_view(UserAdmin)
     admin.add_view(DiaryAdmin)
     admin.add_view(WeeklyReportAdmin)
+    admin.add_view(MonthlyReportAdmin)
     admin.add_view(StoreItemAdmin)
     admin.add_view(UserItemAdmin)
 

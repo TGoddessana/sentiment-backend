@@ -97,56 +97,43 @@ def analyze_weekly_emotions(weekly_emotions: dict[str, str]) -> str:
     return result
 
 
-# def analyze_monthly_content(monthly_emotions: dict[str, str]):
-#     prompt = dedent(
-#         f"""
-#         한 달 동안의 감정 데이터와 주간 조언들을 종합적으로 분석하여 월간 리포트를 작성해주세요.
-#
-#         📌 **주차별 감정 데이터:**
-#         {weekly_emotions_list}
-#
-#         📌 **주간 조언 요약:**
-#         {weekly_summaries}
-#
-#         📌 **가이드라인:**
-#         - 한 달 동안의 감정 변화 패턴을 분석해주세요.
-#         - 주간 조언들을 참고하여 전체적인 감정 흐름을 파악해주세요.
-#         - 가장 많이 나타난 감정과 그 의미를 설명해주세요.
-#         - 한 달 동안의 감정 변화를 바탕으로 종합적인 조언을 제공해주세요.
-#
-#         📌 **출력 형식:**
-#         1. 월간 감정 패턴: [한 달 동안의 감정 변화 패턴 설명]
-#         2. 주요 감정: [가장 많이 나타난 감정과 그 의미]
-#         3. 종합 조언: [이번 달의 감정을 바탕으로 한 종합적인 조언]
-#         """
-#     )
-#
-#     response = client.chat.completions.create(
-#         model="gpt-3.5-turbo",
-#         messages=[
-#             {
-#                 "role": "system",
-#                 "content": "당신은 월간 감정 패턴을 분석하고 종합적인 조언을 제공하는 전문가입니다.",
-#             },
-#             {
-#                 "role": "user",
-#                 "content": prompt,
-#             },
-#         ],
-#         temperature=0.7,
-#         max_tokens=500,
-#     )
-#     result = response.choices[0].message.content.strip()
-#
-#     lines = result.split("\n")
-#     monthly_pattern = lines[0].split(":")[1].strip()
-#     main_emotion = lines[1].split(":")[1].strip()
-#     comprehensive_advice = lines[2].split(":")[1].strip()
-#
-#     return {
-#         "monthly_pattern": monthly_pattern,
-#         "main_emotion": main_emotion,
-#         "comprehensive_advice": comprehensive_advice,
-#         "weekly_emotions": weekly_emotions_list,
-#         "weekly_summaries": weekly_summaries,
-#     }
+def analyze_monthly_emotions(monthly_emotions: dict[str, str]):
+    prompt = dedent(
+        f"""
+        사용자의 지난 한 달 동안의 감정 변화를 분석하고, **부드럽고 자연스러운 흐름으로 3문장으로 요약하여 조언을 제공하세요.**
+
+         📌 **감정 변화 데이터:**  
+        {", ".join(
+            [f"{day}: {emotion}" for day, emotion in monthly_emotions.items()]
+        )}
+
+        📌 **가이드라인:**
+        - 한 달 동안의 감정 변화 패턴을 분석해주세요.
+        - 주간 조언들을 참고하여 전체적인 감정 흐름을 파악해주세요.
+        - 가장 많이 나타난 감정과 그 의미를 설명해주세요.
+        - 한 달 동안의 감정 변화를 바탕으로 종합적인 조언을 제공해주세요.
+
+        📌 **출력 형식:**
+        - **딱 3문장만 작성하세요.**  
+        - 감정이 단순히 나열되지 않고, 자연스럽게 흐르도록 서술하세요.  
+        - 감정을 받아들이는 방법을 부드럽게 제시하세요.  
+        """
+    )
+
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {
+                "role": "system",
+                "content": "당신은 월간 감정 패턴을 분석하고 종합적인 조언을 제공하는 전문가입니다.",
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        ],
+        temperature=0.7,
+        max_tokens=500,
+    )
+    result = response.choices[0].message.content.strip()
+    return result
