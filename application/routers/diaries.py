@@ -1,6 +1,6 @@
 import os
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Dict
 
 from fastapi import APIRouter, HTTPException, Form, UploadFile
 from sqlalchemy import func, and_, exists, select
@@ -8,7 +8,12 @@ from starlette import status
 from starlette.requests import Request
 
 from application.models import Diary
-from application.schemas import DiaryResponse, DiaryCreateInput, AnalyzedEmotion
+from application.schemas import (
+    DiaryResponse,
+    DiaryListResponse,
+    DiaryCreateInput,
+    AnalyzedEmotion,
+)
 from application.utils import write_file
 from config.dependencies import CurrentUser, SessionDependency
 
@@ -58,22 +63,34 @@ def create_diary(
     current_user.add_coin(100)
     db_session.refresh(diary)
 
-    return DiaryResponse.from_diary(diary)
+    return DiaryResponse.from_diary(request=request, diary=diary)
 
 
 @router.get(
     "/",
-    response_model=list[DiaryResponse],
+    response_model=Dict[str, DiaryListResponse],
     summary="일기 목록 조회",
-    description="현재 로그인한 사용자가 작성한 일기 목록을 조회하는 API입니다. 사용자가 지금까지 작성한 모든 일기를 반환합니다.",
+    description="현재 로그인한 사용자가 작성한 일기 목록을 조회하는 API입니다. 사용자가 지금까지 작성한 모든 일기를 반환합니다. 반환 형식은 {'날짜': 일기}의 딕셔너리입니다.",
 )
 def read_diaries(
+    request: Request,
     current_user: CurrentUser,
+    month: int,
     db_session: SessionDependency,
 ):
-    diaries = db_session.query(Diary).filter(Diary.user_id == current_user.id).all()
+    stmt = select(Diary).where(
+        Diary.user_id == current_user.id,
+        func.extract("month", Diary.created_at) == month,
+    )
 
-    return [DiaryResponse.from_diary(diary) for diary in diaries]
+    diaries = db_session.execute(stmt).scalars().all()
+
+    return {
+        diary.created_at.strftime("%Y-%m-%d"): DiaryListResponse.from_diary(
+            request=request, diary=diary
+        )
+        for diary in diaries
+    }
 
 
 @router.get(
@@ -83,6 +100,7 @@ def read_diaries(
     description="일기 ID를 통해 특정 일기의 상세 정보를 조회하는 API입니다. 현재 로그인한 사용자의 일기만 조회할 수 있습니다.",
 )
 def read_diary_by_id(
+    request: Request,
     diary_id: int,
     current_user: CurrentUser,
     db_session: SessionDependency,
@@ -100,4 +118,4 @@ def read_diary_by_id(
             detail="일기를 찾을 수 없습니다.",
         )
 
-    return DiaryResponse.from_diary(diary)
+    return DiaryResponse.from_diary(request=request, diary=diary)
