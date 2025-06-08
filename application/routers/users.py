@@ -63,17 +63,7 @@ def create_user(
 def read_current_user(
     request: Request,
     current_user: CurrentUser,
-    db_session: SessionDependency,
 ):
-
-    # equipped: true 인 아이템만 필터링
-    # stmt = select(UserItem).where(
-    #     UserItem.user_id == current_user.id,
-    #     UserItem.equipped.is_(True),
-    # )
-    # equipped_items = db_session.scalars(stmt).all()
-    # print(f"Equipped Items: {equipped_items}")
-
     return UserResponse.from_user(request, current_user)
 
 
