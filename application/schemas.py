@@ -1,5 +1,7 @@
+import calendar
+
 from fastapi import UploadFile
-from pydantic import BaseModel, RootModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 from datetime import date, datetime
 
 from pydantic_core.core_schema import ValidationInfo
@@ -221,14 +223,30 @@ class WeeklyReportRequest(BaseModel):
         return value
 
 
-class WeeklySummary(BaseModel):
-    week_number: int
-    summary: str
+class MonthlyReportRequest(BaseModel):
+    start_date: date = Field(
+        ...,
+        description="월간 리포트의 시작 날짜 (1일)",
+    )
+    end_date: date = Field(
+        ...,
+        description="월간 리포트의 끝 날짜 (마지막 날)",
+    )
 
+    @field_validator("start_date")
+    @classmethod
+    def validate_start_date(cls, value, info: ValidationInfo):
+        if value.day != 1:
+            raise ValueError("시작 날짜는 1일이어야 합니다.")
+        return value
 
-class MonthlyAnalysis(BaseModel):
-    weekly_emotions: list
-    weekly_summaries: list[WeeklySummary]  # 4주치 주간 조언
+    @field_validator("end_date")
+    @classmethod
+    def validate_end_date(cls, value, info: ValidationInfo):
+        last_day_of_month = calendar.monthrange(value.year, value.month)[1]
+        if value.day != last_day_of_month:
+            raise ValueError(f"끝 날짜는 {last_day_of_month}일이어야 합니다.")
+        return value
 
 
 #########
