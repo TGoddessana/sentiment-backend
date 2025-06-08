@@ -105,8 +105,10 @@ class DiaryAdmin(ModelView, model=Diary):
     column_list = [
         Diary.id,
         Diary.user_id,
+        Diary.date,
         Diary.title,
         Diary.created_at,
+        Diary.updated_at,
     ]
     column_searchable_list = [
         Diary.title,
@@ -115,6 +117,7 @@ class DiaryAdmin(ModelView, model=Diary):
     column_details_list = [
         Diary.id,
         Diary.user_id,
+        Diary.date,
         Diary.weather,
         Diary.title,
         Diary.content,
@@ -123,6 +126,14 @@ class DiaryAdmin(ModelView, model=Diary):
         Diary.created_at,
         Diary.updated_at,
     ]
+    column_formatters = {
+        Diary.created_at: lambda m, _: m.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        Diary.updated_at: lambda m, _: m.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    column_formatters_detail = {
+        Diary.created_at: lambda m, _: m.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        Diary.updated_at: lambda m, _: m.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+    }
 
 
 def format_image_url(model, attribute) -> Markup:
