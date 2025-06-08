@@ -2,7 +2,7 @@ import os
 from datetime import date
 from typing import Annotated, Dict
 
-from fastapi import APIRouter, HTTPException, Form, UploadFile
+from fastapi import APIRouter, HTTPException, Form
 from fastapi.params import Query
 from sqlalchemy import func, and_, exists, select
 from starlette import status
@@ -11,10 +11,9 @@ from starlette.requests import Request
 from application.models import Diary
 from application.schemas import (
     DiaryResponse,
-    DiariesDictResponse,
     DiaryCreateInput,
-    AnalyzedEmotion,
     DiaryListParams,
+    DiaryCalendarResponse,
 )
 from application.utils import write_file
 from config.dependencies import CurrentUser, SessionDependency
@@ -40,7 +39,7 @@ def create_diary(
     stmt = exists().where(
         and_(
             Diary.user_id == current_user.id,
-            func.date(Diary.created_at) == date.today(),
+            func.date(Diary.created_at) == request_formdata.diary_date,
         )
     )
 
@@ -52,6 +51,7 @@ def create_diary(
 
     diary = Diary(
         user_id=current_user.id,
+        date=request_formdata.diary_date,
         weather=request_formdata.weather,
         title=request_formdata.title,
         content=request_formdata.content,
@@ -70,7 +70,7 @@ def create_diary(
 
 @router.get(
     "/",
-    response_model=DiariesDictResponse,
+    response_model=dict[date, DiaryCalendarResponse],
     summary="일기 목록 조회",
     description="현재 로그인한 사용자가 작성한 일기 목록을 조회하는 API입니다. 사용자가 지금까지 작성한 모든 일기를 반환합니다. 반환 형식은 {'날짜': 일기}의 딕셔너리입니다.",
 )
@@ -84,14 +84,18 @@ def read_diaries(
         select(Diary)
         .where(
             Diary.user_id == current_user.id,
-            func.extract("year", Diary.created_at) == params.year,
-            func.extract("month", Diary.created_at) == params.month,
+            func.extract("year", Diary.date) == params.year,
+            func.extract("month", Diary.date) == params.month,
         )
-        .order_by(Diary.created_at.desc())
+        .order_by(Diary.date.desc())
     )
     diaries = db_session.execute(stmt).scalars().all()
+    print(diaries)
 
-    return DiariesDictResponse.from_diaries(request=request, diaries=diaries)
+    return {
+        diary.date: DiaryCalendarResponse.from_diary(request=request, diary=diary)
+        for diary in diaries
+    }
 
 
 @router.get(

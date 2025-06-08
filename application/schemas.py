@@ -30,6 +30,10 @@ class TokenResponse(BaseModel):
 
 
 class DiaryCreateInput(BaseModel):
+    diary_date: date = Field(
+        ...,
+        description="작성할 일기의 날짜",
+    )
     weather: str = Field(..., description="날씨")
     title: str = Field(..., description="제목")
     content: str = Field(..., description="일기 본문")
@@ -84,6 +88,10 @@ class DiaryResponse(BaseModel):
     content: str
     image_urls: list[str]
     date: date
+
+    created_at: datetime
+    updated_at: datetime
+
     analyzed_emotion: AnalyzedEmotion | None = None
 
     @classmethod
@@ -100,7 +108,9 @@ class DiaryResponse(BaseModel):
             image_urls=[
                 f"{request.base_url}{image_url}" for image_url in diary.image_urls
             ],
-            date=diary.created_at.date(),
+            date=diary.date,
+            created_at=diary.created_at,
+            updated_at=diary.updated_at,
             analyzed_emotion=(
                 AnalyzedEmotion.from_emotion_enum(diary.get_analyzed_emotion_enum())
                 if diary.get_analyzed_emotion_enum()
@@ -129,45 +139,29 @@ class DiaryListParams(BaseModel):
         return int(self.year_and_month.split("-")[1])
 
 
-class DiariesDictResponse(RootModel):
-    class _DiaryList(BaseModel):
-        id: int
-        weather: str
-        title: str
-        date: date
-        analyzed_emotion: AnalyzedEmotion | None = None
-
-        @classmethod
-        def from_diary(
-            cls,
-            request: Request,
-            diary: Diary,
-        ) -> "DiariesDictResponse._DiaryList":
-            return cls(
-                id=diary.id,
-                weather=diary.weather,
-                title=diary.title,
-                date=diary.created_at.date(),
-                analyzed_emotion=(
-                    AnalyzedEmotion.from_emotion_enum(diary.get_analyzed_emotion_enum())
-                    if diary.get_analyzed_emotion_enum()
-                    else None
-                ),
-            )
-
-    root: dict[str, _DiaryList]
+class DiaryCalendarResponse(BaseModel):
+    id: int
+    weather: str
+    title: str
+    date: date
+    analyzed_emotion: AnalyzedEmotion | None = None
 
     @classmethod
-    def from_diaries(
-        cls, request: Request, diaries: list[Diary]
-    ) -> "DiariesDictResponse":
+    def from_diary(
+        cls,
+        request: Request,
+        diary: Diary,
+    ) -> "DiaryCalendarResponse":
         return cls(
-            root={
-                diary.created_at.strftime("%Y-%m-%d"): cls._DiaryList.from_diary(
-                    request=request, diary=diary
-                )
-                for diary in diaries
-            }
+            id=diary.id,
+            weather=diary.weather,
+            title=diary.title,
+            date=diary.created_at.date(),
+            analyzed_emotion=(
+                AnalyzedEmotion.from_emotion_enum(diary.get_analyzed_emotion_enum())
+                if diary.get_analyzed_emotion_enum()
+                else None
+            ),
         )
 
 
