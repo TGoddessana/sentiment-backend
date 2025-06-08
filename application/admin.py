@@ -101,7 +101,6 @@ class DiaryAdmin(ModelView, model=Diary):
     icon = "fa-solid fa-book"
 
     can_create = False
-    can_edit = False
 
     column_list = [
         Diary.id,
