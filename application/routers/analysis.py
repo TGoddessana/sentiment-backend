@@ -1,23 +1,35 @@
+import datetime
+
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from sqlalchemy import select
 
 from application.constants import Emotion
-from application.models import Diary
-from application.ai import analyze_diary_content, client
+from application.models import Diary, WeeklyReport
+from application.ai import analyze_diary_emotion, client, analyze_weekly_emotions
 from application.schemas import MonthlyAnalysis
-from config.dependencies import SessionDependency
+from config.dependencies import SessionDependency, CurrentUser
 
 router = APIRouter()
 
 
 @router.post(
     "/diary-mood/{diary_id}",
+    summary="일기 감정 분석",
     description="일기의 아이디를 받아 해당 일기의 감정을 분석하는 API입니다.",
 )
 def analyze_mood(diary_id: int, db_session: SessionDependency):
-
     diary: Diary = db_session.query(Diary).get(diary_id)
-    analyzed_emotion: Emotion = analyze_diary_content(diary.content)
+
+    if diary.analyzed_emotion:
+        emotion = diary.get_analyzed_emotion_enum()
+        return {
+            "name": emotion.name,
+            "korean_name": emotion.korean_name,
+            "emoji": emotion.emoji,
+            "message": emotion.message,
+        }
+
+    analyzed_emotion: Emotion = analyze_diary_emotion(diary.content)
     diary.analyze_emotion(analyzed_emotion)
 
     return {
@@ -107,71 +119,89 @@ def analyze_monthly(monthly_data: MonthlyAnalysis):
     return result
 
 
-class WeeklyEmotionTimeline(BaseModel):
-    monday: str = Field(description="월요일의 감정")
-    tuesday: str = Field(description="화요일의 감정")
-    wednesday: str = Field(description="수요일의 감정")
-    thursday: str = Field(description="목요일의 감정")
-    friday: str = Field(description="금요일의 감정")
-    saturday: str = Field(description="토요일의 감정")
-    sunday: str = Field(description="일요일의 감정")
-
-
-def analyze_weekly_content(weekly_emotions: WeeklyEmotionTimeline):
-    emotion_timeline = {
-        "월요일": Emotion.from_name(weekly_emotions.monday),
-        "화요일": Emotion.from_name(weekly_emotions.tuesday),
-        "수요일": Emotion.from_name(weekly_emotions.wednesday),
-        "목요일": Emotion.from_name(weekly_emotions.thursday),
-        "금요일": Emotion.from_name(weekly_emotions.friday),
-        "토요일": Emotion.from_name(weekly_emotions.saturday),
-        "일요일": Emotion.from_name(weekly_emotions.sunday),
-    }
-
-    prompt = f"""
-    사용자의 지난 일주일 동안의 감정 변화를 분석하고, **부드럽고 자연스러운 흐름으로 3문장으로 요약하여 조언을 제공하세요.**
-
-    📌 **감정 변화 데이터:**  
-    {", ".join(
-        [f"{day}: {emotion}" for day, emotion in emotion_timeline.items()]
-    )}
-
-    📌 **가이드라인:**  
-    - 감정의 흐름을 분석하여 사용자가 한 주 동안 어떻게 느꼈는지 서사적으로 표현하세요.  
-    - 감정을 나열하는 방식이 아니라, 감정의 변화가 자연스럽게 연결되도록 표현하세요.  
-    - 행복이 많다면, 따뜻한 응원을 보내고, 힘든 감정이 많다면 부드럽게 위로해 주세요.  
-    - 감정을 평가하지 말고, 사용자가 자신의 감정을 자연스럽게 받아들일 수 있도록 돕는 톤을 유지하세요.  
-
-    📌 **출력 형식:**  
-    - **딱 3문장만 작성하세요.**  
-    - 감정이 단순히 나열되지 않고, 자연스럽게 흐르도록 서술하세요.  
-    - 감정을 받아들이는 방법을 부드럽게 제시하세요.  
-    """
-
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {
-                "role": "system",
-                "content": "당신은 주간 감정 패턴을 분석하고 조언을 제공하는 전문가입니다.",
-            },
-            {
-                "role": "user",
-                "content": prompt,
-            },
-        ],
-        temperature=0.7,
-        max_tokens=300,
-    )
-    result = response.choices[0].message.content.strip()
-
-    return {"weekly_analysis": result}
-
-
 @router.post(
     "/weekly-report",
+    summary="주간 감정 분석",
     description="주간 감정 분석을 위한 API입니다. 일주일 동안의 감정 데이터를 받아 종합적인 주간 리포트를 생성합니다.",
 )
-async def analyze_weekly(emotions: WeeklyEmotionTimeline):
-    result = analyze_weekly_content(emotions)
-    return result
+def analyze_weekly(
+    start_date: str,
+    end_date: str,
+    current_user: CurrentUser,
+    db_session: SessionDependency,
+):
+    if datetime.datetime.strptime(start_date, "%Y-%m-%d").weekday() != 0:
+        raise ValueError("시작 날짜는 월요일이어야 합니다.")
+
+    if datetime.datetime.strptime(end_date, "%Y-%m-%d").weekday() != 6:
+        raise ValueError("끝 날짜는 일요일이어야 합니다.")
+
+    # 시작 날짜, 끝 날짜까지 일기 불러오기
+    stmt = select(Diary).where(
+        Diary.user_id == current_user.id,
+        Diary.date >= start_date,
+        Diary.date <= end_date,
+    )
+    diaries = db_session.execute(stmt).scalars().all()
+
+    # 날짜: 감정 형태로 변환, 감정이 없을 경우 None으로 설정, 일기가 작성되지 않은 경우에도 날짜는 포함
+    # 스파게티 코드 ...
+    # "emotion_timeline": {
+    #     "2025-06-02": null,
+    #     "2025-06-03": null,
+    #     "2025-06-04": null,
+    #     "2025-06-05": null,
+    #     "2025-06-06": null,
+    #     "2025-06-07": "불안",
+    #     "2025-06-08": null
+    #   },
+    emotion_timeline = {}
+    _start_date, _end_date = start_date, end_date
+    while _start_date <= _end_date:
+        print(_start_date)
+        emotion_timeline[_start_date] = None
+        _start_date = (
+            datetime.datetime.strptime(_start_date, "%Y-%m-%d")
+            + datetime.timedelta(days=1)
+        ).strftime("%Y-%m-%d")
+
+    for diary in diaries:
+        if diary.date.strftime("%Y-%m-%d") in emotion_timeline:
+            emotion_timeline[diary.date.strftime("%Y-%m-%d")] = (
+                diary.get_analyzed_emotion_enum().korean_name
+                if diary.get_analyzed_emotion_enum()
+                else None
+            )
+
+    # 이미 주간 리포트가 존재하는지 확인
+    stmt = select(WeeklyReport).where(
+        WeeklyReport.user_id == current_user.id,
+        WeeklyReport.start_date
+        == datetime.datetime.strptime(start_date, "%Y-%m-%d").date(),
+        WeeklyReport.end_date
+        == datetime.datetime.strptime(end_date, "%Y-%m-%d").date(),
+    )
+    existing_report = db_session.execute(stmt).scalar_one_or_none()
+    if existing_report:
+        return {
+            "start_date": existing_report.start_date,
+            "end_date": existing_report.end_date,
+            "emotion_timeline": emotion_timeline,
+            "advice": existing_report.advice,
+        }
+
+    weekly_report = WeeklyReport(
+        user_id=current_user.id,
+        start_date=datetime.datetime.strptime(start_date, "%Y-%m-%d").date(),
+        end_date=datetime.datetime.strptime(end_date, "%Y-%m-%d").date(),
+        advice=analyze_weekly_emotions(emotion_timeline),
+    )
+    db_session.add(weekly_report)
+    db_session.commit()
+
+    return {
+        "start_date": weekly_report.start_date,
+        "end_date": weekly_report.end_date,
+        "emotion_timeline": emotion_timeline,
+        "advice": weekly_report.advice,
+    }

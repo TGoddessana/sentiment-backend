@@ -43,6 +43,9 @@ class User(IdModel, TimeStampedModel):
     coin: Mapped[int] = mapped_column(default=0)
 
     diaries: Mapped[List["Diary"]] = relationship("Diary", back_populates="user")
+    weekly_reports: Mapped[List["WeeklyReport"]] = relationship(
+        "WeeklyReport", back_populates="user"
+    )
     items: Mapped[List["UserItem"]] = relationship("UserItem", back_populates="user")
 
     @property
@@ -162,12 +165,27 @@ class Diary(IdModel, TimeStampedModel):
         self.analyzed_emotion = emotion.name
 
     def get_analyzed_emotion_enum(self) -> Emotion | None:
-        return (
-            Emotion.from_name(self.analyzed_emotion) if self.analyzed_emotion else None
-        )
+        if not self.analyzed_emotion:
+            return None
+
+        return Emotion.from_name(self.analyzed_emotion)
 
     def __repr__(self):
         return f"Diary(id={self.id}, user_id={self.user_id}, date={self.created_at}, title={self.title})"
+
+
+class WeeklyReport(IdModel):
+    __tablename__ = "weekly_reports"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    advice: Mapped[str] = mapped_column(String(500), nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="weekly_reports")
+
+    def __repr__(self):
+        return f"WeeklyReport(id={self.id}, user_id={self.user_id}, start_date={self.start_date}, end_date={self.end_date})"
 
 
 class ItemCategory(str, Enum):

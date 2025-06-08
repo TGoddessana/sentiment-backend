@@ -14,7 +14,7 @@ from wtforms import (
     FileField,
 )
 
-from application.models import User, Diary, StoreItem, UserItem
+from application.models import User, Diary, StoreItem, UserItem, WeeklyReport
 from application.utils import write_file, remove_file
 from config.settings import settings
 
@@ -141,6 +141,35 @@ def format_image_url(model, attribute) -> Markup:
         f'<img src="http://{settings.SERVER_HOST}/{getattr(model, attribute)}" '
         f'style="max-width: 100px; max-height: 100px;" />'
     )
+
+
+class WeeklyReportAdmin(ModelView, model=WeeklyReport):
+    name = "주간 리포트"
+    name_plural = "주간 리포트 관리"
+    icon = "fa-solid fa-calendar-week"
+
+    can_create = False
+
+    column_labels = {
+        WeeklyReport.id: "리포트 ID",
+        WeeklyReport.user: "사용자",
+        WeeklyReport.start_date: "시작 날짜",
+        WeeklyReport.end_date: "종료 날짜",
+        WeeklyReport.advice: "조언",
+    }
+    column_list = [
+        WeeklyReport.user,
+        WeeklyReport.start_date,
+        WeeklyReport.end_date,
+        WeeklyReport.advice,
+    ]
+    column_details_list = [
+        WeeklyReport.id,
+        WeeklyReport.user,
+        WeeklyReport.start_date,
+        WeeklyReport.end_date,
+        WeeklyReport.advice,
+    ]
 
 
 class StoreItemAdmin(ModelView, model=StoreItem):
