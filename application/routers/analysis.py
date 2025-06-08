@@ -6,7 +6,7 @@ from sqlalchemy import select
 from application.constants import Emotion
 from application.models import Diary, WeeklyReport
 from application.ai import analyze_diary_emotion, client, analyze_weekly_emotions
-from application.schemas import MonthlyAnalysis
+from application.schemas import MonthlyAnalysis, WeeklyReportRequest
 from config.dependencies import SessionDependency, CurrentUser
 
 router = APIRouter()
@@ -125,22 +125,15 @@ def analyze_monthly(monthly_data: MonthlyAnalysis):
     description="주간 감정 분석을 위한 API입니다. 일주일 동안의 감정 데이터를 받아 종합적인 주간 리포트를 생성합니다.",
 )
 def analyze_weekly(
-    start_date: str,
-    end_date: str,
+    weekly_report_request: WeeklyReportRequest,
     current_user: CurrentUser,
     db_session: SessionDependency,
 ):
-    if datetime.datetime.strptime(start_date, "%Y-%m-%d").weekday() != 0:
-        raise ValueError("시작 날짜는 월요일이어야 합니다.")
-
-    if datetime.datetime.strptime(end_date, "%Y-%m-%d").weekday() != 6:
-        raise ValueError("끝 날짜는 일요일이어야 합니다.")
-
     # 시작 날짜, 끝 날짜까지 일기 불러오기
     stmt = select(Diary).where(
         Diary.user_id == current_user.id,
-        Diary.date >= start_date,
-        Diary.date <= end_date,
+        Diary.date >= weekly_report_request.start_date,
+        Diary.date <= weekly_report_request.end_date,
     )
     diaries = db_session.execute(stmt).scalars().all()
 
@@ -156,14 +149,13 @@ def analyze_weekly(
     #     "2025-06-08": null
     #   },
     emotion_timeline = {}
-    _start_date, _end_date = start_date, end_date
+    _start_date, _end_date = (
+        weekly_report_request.start_date,
+        weekly_report_request.end_date,
+    )
     while _start_date <= _end_date:
-        print(_start_date)
         emotion_timeline[_start_date] = None
-        _start_date = (
-            datetime.datetime.strptime(_start_date, "%Y-%m-%d")
-            + datetime.timedelta(days=1)
-        ).strftime("%Y-%m-%d")
+        _start_date = _start_date + datetime.timedelta(days=1)
 
     for diary in diaries:
         if diary.date.strftime("%Y-%m-%d") in emotion_timeline:
@@ -176,10 +168,8 @@ def analyze_weekly(
     # 이미 주간 리포트가 존재하는지 확인
     stmt = select(WeeklyReport).where(
         WeeklyReport.user_id == current_user.id,
-        WeeklyReport.start_date
-        == datetime.datetime.strptime(start_date, "%Y-%m-%d").date(),
-        WeeklyReport.end_date
-        == datetime.datetime.strptime(end_date, "%Y-%m-%d").date(),
+        WeeklyReport.start_date == weekly_report_request.start_date,
+        WeeklyReport.end_date == weekly_report_request.end_date,
     )
     existing_report = db_session.execute(stmt).scalar_one_or_none()
     if existing_report:
@@ -192,8 +182,8 @@ def analyze_weekly(
 
     weekly_report = WeeklyReport(
         user_id=current_user.id,
-        start_date=datetime.datetime.strptime(start_date, "%Y-%m-%d").date(),
-        end_date=datetime.datetime.strptime(end_date, "%Y-%m-%d").date(),
+        start_date=weekly_report_request.start_date,
+        end_date=weekly_report_request.end_date,
         advice=analyze_weekly_emotions(emotion_timeline),
     )
     db_session.add(weekly_report)

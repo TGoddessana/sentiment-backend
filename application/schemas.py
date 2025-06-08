@@ -2,6 +2,7 @@ from fastapi import UploadFile
 from pydantic import BaseModel, RootModel, Field, field_validator
 from datetime import date, datetime
 
+from pydantic_core.core_schema import ValidationInfo
 from starlette.requests import Request
 
 from application.models import Diary, User, StoreItem
@@ -193,6 +194,31 @@ class DiaryCalendarResponse(BaseModel):
                 else None
             ),
         )
+
+
+class WeeklyReportRequest(BaseModel):
+    start_date: date = Field(
+        ...,
+        description="주간 리포트의 시작 날짜 (월요일)",
+    )
+    end_date: date = Field(
+        ...,
+        description="주간 리포트의 끝 날짜 (일요일)",
+    )
+
+    @field_validator("start_date")
+    @classmethod
+    def validate_dates(cls, value, info: ValidationInfo):
+        if value.weekday() != 0:
+            raise ValueError("시작 날짜는 월요일이어야 합니다.")
+        return value
+
+    @field_validator("end_date")
+    @classmethod
+    def validate_end_date(cls, value, info: ValidationInfo):
+        if value.weekday() != 6:
+            raise ValueError("끝 날짜는 일요일이어야 합니다.")
+        return value
 
 
 class WeeklySummary(BaseModel):
