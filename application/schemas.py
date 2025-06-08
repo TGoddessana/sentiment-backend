@@ -188,7 +188,9 @@ class StoreItemResponse(BaseModel):
     category: str
     description: str
     price: int
-    image_url: str | None
+
+    item_image_url: str | None
+    applied_image_url: str | None
 
     purchased: bool
     equipped: bool
@@ -206,9 +208,14 @@ class StoreItemResponse(BaseModel):
             category=store_item.category,
             description=store_item.description,
             price=store_item.price,
-            image_url=(
+            item_image_url=(
                 f"{request.base_url}{store_item.item_image_url}"
                 if store_item.item_image_url
+                else None
+            ),
+            applied_image_url=(
+                f"{request.base_url}{store_item.applied_image_url}"
+                if store_item.applied_image_url
                 else None
             ),
             purchased=current_user.has_item(item=store_item),
