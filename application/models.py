@@ -124,6 +124,9 @@ class Diary(IdModel, TimeStampedModel):
     weather: Mapped[str] = mapped_column(String(20), nullable=False)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     content: Mapped[str] = mapped_column(String(5000), nullable=False)
+    date: Mapped[date] = mapped_column(
+        Date, nullable=False, default=func.current_date()
+    )
     image_urls: Mapped[List[str]] = mapped_column(JSON, default=list)
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
