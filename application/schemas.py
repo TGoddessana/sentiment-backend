@@ -203,6 +203,7 @@ class MindContentRecommendationResponse(BaseModel):
     level: int
     name: str
     korean_name: str
+    instruction: list[str]
 
     @classmethod
     def from_mind_content_type(cls, mind_content_type: MindContentType):
@@ -210,7 +211,25 @@ class MindContentRecommendationResponse(BaseModel):
             level=mind_content_type.level,
             name=mind_content_type.name,
             korean_name=mind_content_type.korean_name,
+            instruction=mind_content_type.instruction,
         )
+
+
+class MindContentCreateRequest(BaseModel):
+    class _SelfPraiseContent(BaseModel):
+        sentence1: str = Field(..., description="자기 칭찬 문장 1")
+        sentence2: str = Field(..., description="자기 칭찬 문장 2")
+        sentence3: str = Field(..., description="자기 칭찬 문장 3")
+
+    level: int
+    self_praise_content: _SelfPraiseContent
+
+    @field_validator("level")
+    @classmethod
+    def validate_level(cls, value, info: ValidationInfo):
+        if value not in [1, 2, 3]:
+            raise ValueError("유효한 마음챙김 콘텐츠 레벨은 1, 2, 3입니다.")
+        return value
 
 
 class WeeklyReportRequest(BaseModel):

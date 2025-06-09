@@ -2,7 +2,17 @@ from enum import Enum
 from datetime import datetime, date
 from typing import List
 
-from sqlalchemy import String, Date, DateTime, func, ForeignKey, JSON, Boolean, false
+from sqlalchemy import (
+    String,
+    Date,
+    DateTime,
+    func,
+    ForeignKey,
+    JSON,
+    Boolean,
+    false,
+    Integer,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from application.constants import Emotion
@@ -175,6 +185,25 @@ class Diary(IdModel, TimeStampedModel):
 
     def __repr__(self):
         return f"Diary(id={self.id}, user_id={self.user_id}, date={self.created_at}, title={self.title})"
+
+
+class MindContent(IdModel, TimeStampedModel):
+    __tablename__ = "mind_contents"
+
+    diary_id: Mapped[int] = mapped_column(
+        ForeignKey("diaries.id"), nullable=False, unique=True
+    )
+    level: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    diary: Mapped["Diary"] = relationship(
+        "Diary", backref="mind_content", uselist=False
+    )
+
+    def __repr__(self):
+        return (
+            f"MindContent(id={self.id}, diary_id={self.diary_id}, level={self.level})"
+        )
 
 
 class WeeklyReport(IdModel):

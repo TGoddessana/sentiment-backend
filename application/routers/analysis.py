@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from sqlalchemy import select
 
 from application.constants import Emotion
+from application.crud import get_model_or_403
 from application.models import Diary, WeeklyReport, MonthlyReport
 from application.ai import (
     analyze_diary_emotion,
@@ -21,8 +22,17 @@ router = APIRouter()
     summary="일기 감정 분석",
     description="일기의 아이디를 받아 해당 일기의 감정을 분석하는 API입니다.",
 )
-def analyze_mood(diary_id: int, db_session: SessionDependency):
-    diary: Diary = db_session.query(Diary).get(diary_id)
+def analyze_mood(
+    diary_id: int,
+    current_user: CurrentUser,
+    db_session: SessionDependency,
+):
+    diary = get_model_or_403(
+        model_pk=diary_id,
+        db_session=db_session,
+        user_id=current_user.id,
+        model_class=Diary,
+    )
 
     if diary.analyzed_emotion:
         emotion = diary.get_analyzed_emotion_enum()
