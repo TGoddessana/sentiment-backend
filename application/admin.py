@@ -114,6 +114,7 @@ class DiaryAdmin(ModelView, model=Diary):
         Diary.user_id,
         Diary.date,
         Diary.title,
+        Diary.analyzed_emotion,
         Diary.created_at,
         Diary.updated_at,
     ]
