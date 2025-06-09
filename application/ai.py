@@ -12,7 +12,7 @@ client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 def analyze_diary_emotion(diary_content: str) -> Emotion:
     prompt = dedent(
-        f"""다음 일기 내용을 분석하여 감정을 분류해주세요. 감정은 다음 5가지 중 하나로 분류해주세요.
+        f"""다음 일기 내용을 분석하여 아래 감정 중 하나의 영어 단어만, 아무 설명 없이 한 줄로 출력하세요.
         
             NEUTRAL
             HAPPY
@@ -52,7 +52,7 @@ def analyze_diary_emotion(diary_content: str) -> Emotion:
         max_tokens=150,
     )
 
-    result = response.choices[0].message.content.strip()
+    result = response.choices[0].message.content.strip().split()[0].upper()
     return Emotion.from_name(result)
 
 
