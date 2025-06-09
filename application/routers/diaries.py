@@ -45,7 +45,7 @@ def create_diary(
     stmt = exists().where(
         and_(
             Diary.user_id == current_user.id,
-            func.date(Diary.date) == request_formdata.diary_date,
+            Diary.date == request_formdata.diary_date,
         )
     )
 
