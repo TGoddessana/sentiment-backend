@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 
 from datetime import date
@@ -11,7 +12,7 @@ from starlette.requests import Request
 
 from application.constants import Emotion, MindContentType
 from application.crud import get_model_or_404, get_model_or_403
-from application.models import Diary
+from application.models import Diary, MindContent
 from application.schemas import (
     DiaryResponse,
     DiaryCreateInput,
@@ -223,4 +224,35 @@ def create_mind_content(
         model_class=Diary,
     )
 
-    return diary
+    content = (
+        mind_content_create_request.level_1_content.model_dump_json()
+        if mind_content_create_request.level == 1
+        else (
+            mind_content_create_request.level_2_content.model_dump_json()
+            if mind_content_create_request.level == 2
+            else mind_content_create_request.level_3_content.model_dump_json()
+        )
+    )
+
+    stmt = select(MindContent).where(
+        MindContent.diary_id == diary.id,
+    )
+    existing_mind_content = db_session.execute(stmt).scalar_one_or_none()
+    if existing_mind_content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="이미 해당 일기에 대한 마음챙김 콘텐츠가 존재합니다.",
+        )
+
+    mind_content = MindContent(
+        diary_id=diary.id,
+        level=mind_content_create_request.level,
+        content=content,
+    )
+    db_session.add(mind_content)
+    db_session.commit()
+    db_session.refresh(mind_content)
+
+    import json
+
+    return json.loads(mind_content.content)

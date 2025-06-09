@@ -21,6 +21,7 @@ from application.models import (
     UserItem,
     WeeklyReport,
     MonthlyReport,
+    MindContent,
 )
 from application.utils import write_file, remove_file
 from config.settings import settings
@@ -159,6 +160,31 @@ def format_image_url(model, attribute) -> Markup:
         f'<img src="http://{settings.SERVER_HOST}/{getattr(model, attribute)}" '
         f'style="max-width: 100px; max-height: 100px;" />'
     )
+
+
+class MindContentAdmin(ModelView, model=MindContent):
+    name = "마음챙김 콘텐츠"
+    name_plural = "마음챙김 콘텐츠 관리"
+    icon = "fa-solid fa-heart"
+
+    column_labels = {
+        MindContent.id: "콘텐츠 ID",
+        MindContent.diary: "일기",
+        MindContent.level: "레벨",
+        MindContent.content: "컨텐츠",
+    }
+    column_list = [
+        MindContent.id,
+        MindContent.diary,
+        MindContent.level,
+        MindContent.content,
+    ]
+    column_details_list = [
+        MindContent.id,
+        MindContent.diary,
+        MindContent.level,
+        MindContent.content,
+    ]
 
 
 class WeeklyReportAdmin(ModelView, model=WeeklyReport):

@@ -141,6 +141,13 @@ class MindContentType(Enum):
         self.instruction = instruction
 
     @classmethod
+    def from_name(cls, name: str) -> "MindContentType":
+        for item in cls:
+            if item.name == name:
+                return item
+        raise ValueError(f"해당 이름의 MindContentType이 없습니다: {name}")
+
+    @classmethod
     def from_level(cls, level: int) -> "MindContentType":
         import random
 

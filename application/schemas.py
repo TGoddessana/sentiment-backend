@@ -1,7 +1,7 @@
 import calendar
 
 from fastapi import UploadFile
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, root_validator, model_validator
 from datetime import date, datetime
 
 from pydantic_core.core_schema import ValidationInfo
@@ -216,13 +216,80 @@ class MindContentRecommendationResponse(BaseModel):
 
 
 class MindContentCreateRequest(BaseModel):
-    class _SelfPraiseContent(BaseModel):
+    class _Level1Content(BaseModel):
+        """
+        {
+            "level": 1,
+            "name": "BREATHING_MEDITATION",
+            "korean_name": "호흡 명상",
+            "instruction": [
+                "허리를 세우고 편한 자세를 갖춘 후 눈을 감은 채 호흡에 집중합니다. 다른 생각은 하지 말고 숨이 어떻게 나가고 들어오게 되는지에 집중해 보세요."
+            ]
+        }
+        """
+
+        level: int
+        name: str
+        korean_name: str = Field(..., description="마음챙김 콘텐츠의 한국어 이름")
+        instruction: list[str] = Field(..., description="마음챙김 콘텐츠의 지침 목록")
+
+    class _Level2Content(BaseModel):
+        """
+        {
+            "level": 2,
+            "name": "CAUSE_ANALYSIS",
+            "korean_name": "부정적인 감정의 원인에 대한 고찰",
+            "instruction": [
+                "문제를 감정 없이 명확히 적는다.",
+                "표면적 원인과 근본 원인을 \"왜?\"를 반복해 파악한다.외부·내부 영향 요인을 정리한다.",
+                "비슷한 사례가 있었는지 패턴을 찾아본다.",
+                "핵심 원인 2~3개로 요약하고, 내 관점에서 성찰한다."
+            ]
+        }
+        """
+
+        level: int
+        name: str
+        korean_name: str = Field(..., description="마음챙김 콘텐츠의 한국어 이름")
+        instruction: list[str] = Field(..., description="마음챙김 콘텐츠의 지침 목록")
+
+    class _Level3Content(BaseModel):
+        """
+        {
+            "level": 3,
+            "name": "SELF_PRAISE",
+            "korean_name": "자기 칭찬",
+            "instruction": [
+                "오늘 하루 감사했던 일을 3가지 작성해 보세요."
+            ]
+            "sentence1": "나는 오늘 정말 잘했어.",
+            "sentence2": "나는 오늘 최선을 다했어.",
+            "sentence3": "나는 오늘 나 자신에게 자랑스러워."
+        }
+        """
+
+        level: int
+        name: str
+        korean_name: str = Field(..., description="마음챙김 콘텐츠의 한국어 이름")
+        instruction: list[str] = Field(..., description="마음챙김 콘텐츠의 지침 목록")
         sentence1: str = Field(..., description="자기 칭찬 문장 1")
         sentence2: str = Field(..., description="자기 칭찬 문장 2")
         sentence3: str = Field(..., description="자기 칭찬 문장 3")
 
     level: int
-    self_praise_content: _SelfPraiseContent
+    level_1_content: _Level1Content | None
+    level_2_content: _Level2Content | None
+    level_3_content: _Level3Content | None
+
+    @model_validator(mode="after")
+    def validate_model(self):
+        if self.level == 1 and not self.level_1_content:
+            raise ValueError("레벨 1 콘텐츠는 필수입니다.")
+        if self.level == 2 and not self.level_2_content:
+            raise ValueError("레벨 2 콘텐츠는 필수입니다.")
+        if self.level == 3 and not self.level_3_content:
+            raise ValueError("레벨 3 콘텐츠는 필수입니다.")
+        return self
 
     @field_validator("level")
     @classmethod
