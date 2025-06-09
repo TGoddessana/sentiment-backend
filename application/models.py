@@ -169,7 +169,7 @@ class Diary(IdModel, TimeStampedModel):
     image_urls: Mapped[List[str]] = mapped_column(JSON, default=list)
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    analyzed_emotion: Mapped[str] = mapped_column(String(10), nullable=True)
+    analyzed_emotion: Mapped[str] = mapped_column(String(20), nullable=True)
 
     user: Mapped["User"] = relationship("User", back_populates="diaries")
 
