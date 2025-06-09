@@ -1,6 +1,7 @@
-import os
+from datetime import timedelta
+
 from datetime import date
-from typing import Annotated, Dict
+from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Form
 from fastapi.params import Query
@@ -8,12 +9,15 @@ from sqlalchemy import func, and_, exists, select
 from starlette import status
 from starlette.requests import Request
 
+from application.constants import Emotion, MindContentType
+from application.crud import get_model_or_404
 from application.models import Diary
 from application.schemas import (
     DiaryResponse,
     DiaryCreateInput,
     DiaryListParams,
     DiaryCalendarResponse,
+    MindContentRecommendationResponse,
 )
 from application.utils import write_file
 from config.dependencies import CurrentUser, SessionDependency
@@ -123,3 +127,78 @@ def read_diary_by_id(
         )
 
     return DiaryResponse.from_diary(request=request, diary=diary)
+
+
+@router.get(
+    "/{diary_id}/mind-contents/level",
+    summary="마음챙김 콘텐츠 레벨 조회",
+    description="이번 주차의 일기 감정을 통해 레벨을 조회합니다. 레벨은 1, 2, 3 으로 나뉩니다.",
+)
+def read_mind_contents_level(
+    diary_id: int,
+    current_user: CurrentUser,
+    db_session: SessionDependency,
+):
+    """
+    - 부정적인 감정 30% 미만 - Level1 사진/글귀 랜덤 노출 (명상)
+    - 부정적인 감정 30% 이상 50% 미만 - Level2 원인 분석
+    - 부정적인 감정 50% 이상 - Level3 자신을 칭찬하는 문장 3개 받기 (Input)
+    """
+
+    negative_emotions = [
+        Emotion.SAD.name,
+        Emotion.ANXIOUS.name,
+        Emotion.ANGRY.name,
+        Emotion.TIRED.name,
+        Emotion.LONELY.name,
+        Emotion.BORED.name,
+        Emotion.REGRETFUL.name,
+        Emotion.JEALOUS.name,
+        Emotion.CONFUSED.name,
+    ]
+
+    diary = get_model_or_404(
+        model_pk=diary_id,
+        db_session=db_session,
+        model_class=Diary,
+    )
+
+    # 오늘이 화~일요일일 경우 -> 이번 주의 월요일~일기까지의 부정적인 감정 비율을 계산
+    # 월요일부터 오늘까지의 일기만 조회
+    start_date = diary.date - timedelta(days=diary.date.weekday())
+    end_date = diary.date
+    total_diaries_count = (
+        db_session.query(Diary)
+        .filter(
+            Diary.user_id == current_user.id,
+            Diary.date >= start_date,
+            Diary.date <= end_date,
+        )
+        .count()
+    )
+
+    # 월요일부터 오늘까지의 일기에서 부정적인 감정 개수 조회
+    stmt = select(func.count()).where(
+        Diary.user_id == current_user.id,
+        Diary.date >= start_date,
+        Diary.date <= end_date,
+        Diary.analyzed_emotion.in_(negative_emotions),
+    )
+    negative_emotion_count = db_session.execute(stmt).scalar_one_or_none() or 0
+    negative_emotion_ratio = negative_emotion_count / total_diaries_count
+    if (
+        negative_emotion_ratio < 0.3
+        or total_diaries_count == 0
+        or date.today().weekday() == 0
+    ):
+        return MindContentRecommendationResponse.from_mind_content_type(
+            mind_content_type=MindContentType.MEDITATION
+        )
+    elif negative_emotion_ratio < 0.5:
+        return MindContentRecommendationResponse.from_mind_content_type(
+            MindContentType.CAUSE_ANALYSIS
+        )
+    else:
+        return MindContentRecommendationResponse.from_mind_content_type(
+            MindContentType.SELF_PRAISE
+        )

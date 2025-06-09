@@ -89,3 +89,13 @@ class Emotion(Enum):
             "emoji": self.emoji,
             "message": self.message,
         }
+
+
+class MindContentType(Enum):
+    MEDITATION = (1, "명상")
+    CAUSE_ANALYSIS = (2, "원인 분석")
+    SELF_PRAISE = (3, "자기 칭찬")
+
+    def __init__(self, level, korean_name):
+        self.level = level
+        self.korean_name = korean_name

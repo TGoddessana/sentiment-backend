@@ -7,6 +7,7 @@ from datetime import date, datetime
 from pydantic_core.core_schema import ValidationInfo
 from starlette.requests import Request
 
+from application.constants import MindContentType
 from application.models import Diary, User, StoreItem
 
 
@@ -195,6 +196,20 @@ class DiaryCalendarResponse(BaseModel):
                 if diary.get_analyzed_emotion_enum()
                 else None
             ),
+        )
+
+
+class MindContentRecommendationResponse(BaseModel):
+    level: int
+    name: str
+    korean_name: str
+
+    @classmethod
+    def from_mind_content_type(cls, mind_content_type: MindContentType):
+        return cls(
+            level=mind_content_type.level,
+            name=mind_content_type.name,
+            korean_name=mind_content_type.korean_name,
         )
 
 
