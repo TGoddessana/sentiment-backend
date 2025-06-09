@@ -256,3 +256,33 @@ def create_mind_content(
     import json
 
     return json.loads(mind_content.content)
+
+
+@router.get(
+    "/{diary_id}/mind-contents",
+    summary="마음챙김 콘텐츠 저장",
+    description="해당 일기에 대한 마음챙김 콘텐츠를 저장합니다. 일기 작성자가 아닌 경우, 권한 오류를 반환합니다.",
+)
+def read_mind_content(
+    diary_id: int,
+    current_user: CurrentUser,
+    db_session: SessionDependency,
+):
+    diary = get_model_or_403(
+        model_pk=diary_id,
+        db_session=db_session,
+        user_id=current_user.id,
+        model_class=Diary,
+    )
+
+    stmt = select(MindContent).where(
+        MindContent.diary_id == diary.id,
+    )
+    mind_content = db_session.execute(stmt).scalar_one_or_none()
+    if not mind_content:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="해당 일기에 대한 마음챙김 콘텐츠가 존재하지 않습니다.",
+        )
+
+    return json.loads(mind_content.content)
