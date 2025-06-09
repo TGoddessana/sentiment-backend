@@ -109,9 +109,19 @@ class DiaryAdmin(ModelView, model=Diary):
 
     can_create = False
 
+    column_labels = {
+        Diary.id: "일기 ID",
+        Diary.user: "사용자 ID",
+        Diary.date: "작성 날짜",
+        Diary.title: "제목",
+        Diary.analyzed_emotion: "분석된 감정",
+        Diary.created_at: "작성일시",
+        Diary.updated_at: "수정일시",
+    }
+
     column_list = [
         Diary.id,
-        Diary.user_id,
+        Diary.user,
         Diary.date,
         Diary.title,
         Diary.analyzed_emotion,
@@ -124,7 +134,7 @@ class DiaryAdmin(ModelView, model=Diary):
     ]
     column_details_list = [
         Diary.id,
-        Diary.user_id,
+        Diary.user,
         Diary.date,
         Diary.weather,
         Diary.title,
