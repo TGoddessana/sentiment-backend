@@ -260,7 +260,7 @@ def create_mind_content(
 
 @router.get(
     "/{diary_id}/mind-contents",
-    summary="마음챙김 콘텐츠 저장",
+    summary="마음챙김 콘텐츠 상세조회",
     description="해당 일기에 대한 마음챙김 콘텐츠를 저장합니다. 일기 작성자가 아닌 경우, 권한 오류를 반환합니다.",
 )
 def read_mind_content(
