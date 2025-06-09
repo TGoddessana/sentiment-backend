@@ -22,6 +22,6 @@ def get_model_or_404(
     if not instance:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="상점 아이템을 찾을 수 없습니다.",
+            detail="찾을 수 없는 리소스입니다.",
         )
     return instance
