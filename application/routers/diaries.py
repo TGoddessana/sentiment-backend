@@ -10,7 +10,7 @@ from starlette import status
 from starlette.requests import Request
 
 from application.constants import Emotion, MindContentType
-from application.crud import get_model_or_404
+from application.crud import get_model_or_404, get_model_or_403
 from application.models import Diary
 from application.schemas import (
     DiaryResponse,
@@ -18,6 +18,7 @@ from application.schemas import (
     DiaryListParams,
     DiaryCalendarResponse,
     MindContentRecommendationResponse,
+    MindContentCreateRequest,
 )
 from application.utils import write_file
 from config.dependencies import CurrentUser, SessionDependency
@@ -192,13 +193,34 @@ def read_mind_contents_level(
         or date.today().weekday() == 0
     ):
         return MindContentRecommendationResponse.from_mind_content_type(
-            mind_content_type=MindContentType.MEDITATION
+            mind_content_type=MindContentType.from_level(1)
         )
     elif negative_emotion_ratio < 0.5:
         return MindContentRecommendationResponse.from_mind_content_type(
-            MindContentType.CAUSE_ANALYSIS
+            MindContentType.from_level(2)
         )
     else:
         return MindContentRecommendationResponse.from_mind_content_type(
-            MindContentType.SELF_PRAISE
+            MindContentType.from_level(3)
         )
+
+
+@router.post(
+    "/{diary_id}/mind-contents",
+    summary="마음챙김 콘텐츠 저장",
+    description="해당 일기에 대한 마음챙김 콘텐츠를 저장합니다. 일기 작성자가 아닌 경우, 권한 오류를 반환합니다.",
+)
+def create_mind_content(
+    diary_id: int,
+    current_user: CurrentUser,
+    db_session: SessionDependency,
+    mind_content_create_request: MindContentCreateRequest,
+):
+    diary = get_model_or_403(
+        model_pk=diary_id,
+        db_session=db_session,
+        user_id=current_user.id,
+        model_class=Diary,
+    )
+
+    return diary
